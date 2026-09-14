@@ -1,0 +1,23 @@
+{
+  "entities": {
+    "Reading": {
+      "title": "Palm Reading",
+      "description": "A generated palm reading",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "readingText": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "title": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "readingText", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/readings/{readingId}": {
+      "schema": { "$ref": "#/entities/Reading" },
+      "description": "Palm readings generated for a user."
+    }
+  }
+}

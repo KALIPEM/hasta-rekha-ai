@@ -1,0 +1,16 @@
+{
+  "name": "Vedic Palmistry",
+  "short_name": "Palmistry",
+  "description": "Analyzes palm images using AI to generate detailed, Vedic-inspired palm reading reports.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ]
+}

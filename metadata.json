@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Vedic Palmistry app",
+  "description": "Analyzes palm images using AI to generate detailed, Vedic-inspired palm reading reports. Stores readings using Firebase.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
