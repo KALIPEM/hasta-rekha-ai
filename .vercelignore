@@ -1,0 +1,5 @@
+.env*
+test-results/
+.git/
+.codex/
+.agents/

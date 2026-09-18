@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+import {createClient} from '@supabase/supabase-js';
+const url=import.meta.env.VITE_SUPABASE_URL;
+const key=import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Only the login session is kept in sessionStorage. Reports live exclusively in Supabase.
+export const supabase=url&&key?createClient(url,key,{auth:{storage:window.sessionStorage}}):null;

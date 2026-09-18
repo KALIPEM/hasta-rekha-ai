@@ -19,6 +19,7 @@ export interface AspectReading {
 }
 
 export interface ReadingContent {
+  lifeAreas?: LifeAreaReading[];
   imageQualityCheck: {
     clarity: string;
     confidenceImpact: string;
@@ -44,5 +45,18 @@ export interface Reading {
   images?: string[];
   createdAt: any;
   mode?: 'standard' | 'roast';
+  isSample?: boolean;
+  mainFocus?: string;
+  storageWarning?: string;
+}
+
+export interface LifeAreaReading {
+  id: string;
+  title: string;
+  summary: string;
+  questions: {question:string;answer:string}[];
+  watchOutFor: string;
+  nextStep: string;
+  basis: string;
 }
 

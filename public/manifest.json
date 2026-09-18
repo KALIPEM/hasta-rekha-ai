@@ -1,16 +1,17 @@
 {
-  "name": "Vedic Palmistry",
-  "short_name": "Palmistry",
-  "description": "Analyzes palm images using AI to generate detailed, Vedic-inspired palm reading reports.",
+  "name": "Hasta Rekha",
+  "short_name": "Hasta Rekha",
+  "description": "Vedic-inspired palm reflections.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#f8f5ef",
+  "theme_color": "#f8f5ef",
   "icons": [
     {
       "src": "/favicon.svg",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "any",
+      "purpose": "any"
     }
   ]
 }

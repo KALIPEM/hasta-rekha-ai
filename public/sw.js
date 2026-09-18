@@ -1,27 +1,5 @@
-const CACHE_NAME = 'palmistry-cache-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/favicon.svg'
-];
-
-self.addEventListener('install', (event: any) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache);
-      })
-  );
-});
-
-self.addEventListener('fetch', (event: any) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
+// Upgrade old installations without caching API responses or personal readings.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.delete('palmistry-cache-v1').then(() => self.clients.claim()).then(() => self.registration.unregister()));
 });
