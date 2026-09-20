@@ -1,3 +1,4 @@
+import {requireReadingCredit} from '../lib/credits';
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Heart,LoaderCircle,X} from 'lucide-react';
 import {useAuth} from './AuthContext';
@@ -28,6 +29,7 @@ export function CoupleScanner({onCancel,onScanComplete,status,prepareImage,onBus
     if(!consent||partners.some(p=>(!p.right&&!p.left)||!p.ageRange)){setError('Add a palm and select an age range for each partner, then confirm their permission.');return;}
     setBusy(true);setError('');const controller=new AbortController();request.current=controller;
     try{
+      if(status.billingConfigured && !await requireReadingCredit('couple',onPricing)) return;
       const prepared=await Promise.all(partners.map(async p=>({label:p.label,dominantHand:p.dominantHand,ageRange:p.ageRange,photos:await Promise.all((['right','left'] as const).filter(side=>p[side]).map(async side=>({...await prepareImage(p[side]!),side:side==='right'?'Right':'Left'})))})));
       const result=await apiRequest('/api/palm-reading',{readingKind:'couple',partners:prepared,consent,title},controller.signal);
       if(controller.signal.aborted)return;

@@ -1,3 +1,4 @@
+import {requireReadingCredit} from '../lib/credits';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { ArrowLeft, ArrowRight, Camera, Check, Flame, Hand, ImagePlus, LoaderCircle, ShieldCheck, Sparkles, Sun, Upload, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
@@ -48,8 +49,10 @@ function IndividualScanner({ onCancel, onScanComplete, initialRoast, status, onS
   async function generate() {
     if (!user) { setError('Please sign in to save your reading.'); return; }
     if (!age) { setError('Select your age range.'); setStep(1); return; }
-    setBusy(true); setStep(3); setError(''); request.current = new AbortController();
+    setBusy(true); setError(''); request.current = new AbortController();
     try {
+      if(status.billingConfigured && !await requireReadingCredit('individual',onPricing)) return;
+      setStep(3);
       const images = await Promise.all(files.map(prepareImage));
       const generated = await generatePalmReading(images, hand, age, focus, roast, request.current.signal, title);
       if (request.current.signal.aborted) return;

@@ -73,8 +73,9 @@ export function createApi() {
     if (!admin || !billing) return res.json({credits:0, coupleCredits:0, billingConfigured:false});
     const {data,error} = await admin.from('profiles').select('credits,couple_credits').eq('user_id',uid).maybeSingle();
     if (error) throw new HttpError(503,'Could not load your balance.');
-    const {data:orders} = await admin.from('payment_orders').select('id').eq('user_id',uid).is('fulfilled_at',null).order('created_at',{ascending:false}).limit(1);
-    res.json({credits:data?.credits || 0, coupleCredits:data?.couple_credits || 0, billingConfigured:true, pendingOrderId:orders?.[0]?.id});
+    const {data:orders,error:ordersError} = await admin.from('payment_orders').select('id,plan,amount,credits,created_at,fulfilled_at').eq('user_id',uid).order('created_at',{ascending:false}).limit(20);
+    if(ordersError) throw new HttpError(503,'Could not load your purchase records. Please retry.');
+    res.json({credits:data?.credits || 0, coupleCredits:data?.couple_credits || 0, billingConfigured:true, pendingOrderId:orders?.find(order=>!order.fulfilled_at)?.id,purchases:orders||[]});
   }));
   app.post('/api/palm-reading', wrap(async (req,res) => {
     const input = validateInput(req.body);

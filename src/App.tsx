@@ -6,6 +6,7 @@ import { Dashboard } from './components/Dashboard';
 import { Scanner } from './components/Scanner';
 import { ReadingView } from './components/ReadingView';
 import { AuthScreen } from './components/AuthScreen';
+import { CreditBalanceBar } from './components/CreditBalanceBar';
 import { PricingModal } from './components/PricingModal';
 import { sampleReading } from './lib/sample-reading';
 import { apiRequest } from './lib/gemini-utils';
@@ -28,7 +29,7 @@ function AppContent() {
   useEffect(() => { if (!user && (view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('home'); setReading(sampleReading); } }, [user, view, reading.isSample]);
   function start(roastMode = false) { setRoast(roastMode); if (!user) { setPendingView('scan'); setAuthOpen(true); } else setView('scan'); }
   function history() { if (!user) { setPendingView('history'); setAuthOpen(true); } else setView('history'); }
-  function openReading(r: Reading) { setReading(r); setView('reading'); }
+  function openReading(r: Reading) { if (!r.isSample) window.dispatchEvent(new Event('credits-changed')); setReading(r); setView('reading'); }
   function learn() { setView('home'); setMenuOpen(false); requestAnimationFrame(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })); }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
@@ -48,6 +49,7 @@ function AppContent() {
       </div>
     </header>
     <main id="main">
+      {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>}
       {view === 'home' && <LandingPage onStart={start} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
       {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={() => openReading(sampleReading)}/>}
       {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => setView('home')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
@@ -55,7 +57,7 @@ function AppContent() {
     </main>
     <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => setView('home')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
     {authOpen && <AuthScreen onBack={() => { setAuthOpen(false); if (!user) setPendingView(null); }}/>}
-    {pricingOpen && <PricingModal onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); start(); }}/>}
+    {pricingOpen && <PricingModal key={user?.id || "guest"} onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); if(view!=='scan') start(); }}/>}
   </div>;
 }
 export default function App() { return <AuthProvider><AppContent/></AuthProvider>; }
