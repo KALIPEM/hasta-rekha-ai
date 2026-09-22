@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {LIFE_TOPICS,parseLifeAreas,generateLifeAreas} from '../server/life-areas';
 import {parseReadingContent} from '../src/lib/reading-content';
 import {sampleReading} from '../src/lib/sample-reading';
-const fixture=()=>Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'Overview',insightOne:'First reading insight',insightTwo:'Second reading insight',watchOutFor:'A conditional watch-out',nextStep:'A practical step',basis:'Invented authority'}]));
+const fixture=()=>Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'Overview',insightOne:'First reading insight',insightTwo:'Second reading insight',insightThree:'Third reading insight',watchOutFor:'A conditional watch-out',nextStep:'A practical step',basis:'Invented authority'}]));
 test('seven sections retain their fixed topic lens and direct reading insights',()=>{
  const result=parseLifeAreas(fixture());
  assert.equal(result.length,7);
- assert.equal(result.reduce((n,a)=>n+a.insights.length,0),14);
+ assert.equal(result.reduce((n,a)=>n+a.insights.length,0),21);
  assert.match(result.find(a=>a.id==='money')!.basis,/Fate-line/);
  assert.ok(result.every(a=>a.basis!=='Invented authority'));
  const incomplete=fixture();delete incomplete.romance.insightOne;

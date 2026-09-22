@@ -10,7 +10,7 @@ export function parseReadingContent(value: unknown): ReadingContent {
     || !list(data.lifeTimeline, a => a && ['ageRange', 'phaseName', 'keyEventOrShift', 'palmEvidence'].every(k => text(a[k])))
     || !list(data.behavioralPatterns, a => a && text(a.pattern) && text(a.evidence) && score(a.confidence))
     || !list(data.recommendedActions, text) || !score(data.overallConfidence)
-    || (data.lifeAreas !== undefined && (!list(data.lifeAreas,a=>a && ['id','title','summary','watchOutFor','nextStep','basis'].every(k=>text(a[k])) && list(a.insights,text) && a.insights.length===2) || new Set(data.lifeAreas.map((a:any)=>a.id)).size!==data.lifeAreas.length))) {
+    || (data.lifeAreas !== undefined && (!list(data.lifeAreas,a=>a && ['id','title','summary','watchOutFor','nextStep','basis'].every(k=>text(a[k])) && list(a.insights,text) && a.insights.length===3) || new Set(data.lifeAreas.map((a:any)=>a.id)).size!==data.lifeAreas.length))) {
     throw new Error('The reading was incomplete. Please try again with a clear photo of your whole palm.');
   }
   return data;

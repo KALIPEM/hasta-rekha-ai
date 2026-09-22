@@ -34,7 +34,7 @@ test('Azure image request uses strict structured output, server credentials and 
   let calls=0;
   const fetcher: typeof fetch = async(url,init)=>{
     calls++;
-    if(calls===3)return reply(Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'A useful finding.',insightOne:'A line-based reading of the first theme.',insightTwo:'A line-based reading of the second theme.',watchOutFor:'If you are rushing, pause.',nextStep:'Write down one priority.'}])));
+    if(calls===3)return reply(Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'A useful finding.',insightOne:'A line-based reading of the first theme.',insightTwo:'A line-based reading of the second theme.',insightThree:'A line-based reading of the third theme.',watchOutFor:'If you are rushing, pause.',nextStep:'Write down one priority.'}])));
     assert.equal(url,config.endpoint+'/openai/v1/chat/completions');
     assert.equal((init?.headers as Record<string,string>)['api-key'],'test-secret');
     assert.equal(init?.redirect,'error');
