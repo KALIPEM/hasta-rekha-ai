@@ -6,13 +6,14 @@ import type {ReadingContent} from '../src/types';
 import {budgetedAzureFetch} from '../server/ai-budget';
 import {validatePhotoQuality} from '../server/photo-quality';
 dotenv.config({path:'.env.local',quiet:true});
+const runId=new Date().toISOString().replace(/[:.]/g,'-');
 const paths=process.argv.slice(2);
 if(paths.length<1 || paths.length>2)throw new Error('Supply one or two authorized JPEG photo paths.');
 const images=await Promise.all(paths.map(async path=>({mimeType:'image/jpeg',base64:(await readFile(path)).toString('base64')})));
 await validatePhotoQuality(images);
 console.log('Both photo-quality checks passed.');
 const ai=azureConfig()!;
-const db=createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
+const db=createClient((process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
 const before=await db.from('ai_budget').select('spent_microusd,reserved_microusd').single();
 if(before.error)throw new Error(before.error.message);
 // Each guarded inference reserves at most $1. Include all existing app usage
@@ -36,9 +37,10 @@ for(const isRoastMode of modes) {
  console.log('Generating '+mode+' reading...');
  const result=isRoastMode && normal ? await roastPalmReading(normal,ai,testFetch) : await readPalm({images,dominantHand:'Not supplied; do not infer dominance',ageRange:'Prefer not to say',mainFocus:'Overall life path',isRoastMode},ai,testFetch);
  if(!isRoastMode)normal=result;
- const markdown=['# '+(isRoastMode?'Roast':'Normal')+' reading test','Generated from the two user-supplied photos. Dominant hand and age were not supplied. Traditional symbolism and entertainment, not factual personality assessment.',result.openingHook,result.executiveSummary,...result.aspects.flatMap(a=>['## '+a.aspectName,a.summary,a.detailedInterpretation,'**Palm evidence:** '+a.palmEvidence]),...(result.lifeAreas ?? []).flatMap(area=>['## '+area.title,area.summary,...area.questions.flatMap(q=>['### '+q.question,q.answer]),'**Watch out for:** '+area.watchOutFor,'**Try this:** '+area.nextStep,'*'+area.basis+'*']),'## Reflection prompts',...result.lifeTimeline.map(t=>'**'+t.ageRange+':** '+t.keyEventOrShift),'## Try this',...result.recommendedActions.map(a=>'- '+a)].join('\n\n');
- await writeFile('test-results/'+mode+'-reading.md',markdown);
- console.log(JSON.stringify({mode,quality:result.imageQualityCheck,opening:result.openingHook,aspects:result.aspects,actions:result.recommendedActions,lifeAreas:result.lifeAreas}));
+ const markdown=['# '+(isRoastMode?'Roast':'Normal')+' reading test','Generated from the two user-supplied photos. Dominant hand and age were not supplied.',result.openingHook,result.executiveSummary,...result.aspects.flatMap(a=>['## '+a.aspectName,a.summary,a.detailedInterpretation,'**Palm evidence:** '+a.palmEvidence]),...(result.lifeAreas ?? []).flatMap(area=>['## '+area.title,area.summary,...area.questions.flatMap(q=>['### '+q.question,q.answer]),'**Watch out for:** '+area.watchOutFor,'**Try this:** '+area.nextStep,'*'+area.basis+'*']),'## Thoughts worth sharing',...(result.shareLines ?? []).map(line=>'**'+line.theme+':** '+line.text),'## Past, present & future',...result.lifeTimeline.map(t=>'**'+t.ageRange+':** '+t.keyEventOrShift),'## Try this',...result.recommendedActions.map(a=>'- '+a)].join('\n\n');
+ await writeFile('test-results/'+runId+'-'+mode+'-reading.md',markdown);
+ await writeFile('test-results/'+runId+'-'+mode+'-reading.json',JSON.stringify(result,null,2));
+ console.log(JSON.stringify({mode,quality:result.imageQualityCheck,opening:result.openingHook,shareLines:result.shareLines,reportPath:runId+'-'+mode+'-reading.md'}));
 }
 const after=await db.from('ai_budget').select('spent_microusd,reserved_microusd').single();
 if(after.error)throw new Error(after.error.message);
