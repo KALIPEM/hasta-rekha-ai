@@ -55,7 +55,7 @@ export interface LifeAreaReading {
   id: string;
   title: string;
   summary: string;
-  questions: {question:string;answer:string}[];
+  insights: string[];
   watchOutFor: string;
   nextStep: string;
   basis: string;

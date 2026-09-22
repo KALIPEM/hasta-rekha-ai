@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {LIFE_TOPICS,parseLifeAreas,generateLifeAreas} from '../server/life-areas';
 import {parseReadingContent} from '../src/lib/reading-content';
 import {sampleReading} from '../src/lib/sample-reading';
-const fixture=()=>Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'Overview',answerOne:'First answer',answerTwo:'Second answer',watchOutFor:'A conditional watch-out',nextStep:'A practical step',basis:'Invented authority'}]));
-test('seven sections retain fixed questions and scope rather than model-supplied authority',()=>{
+const fixture=()=>Object.fromEntries(LIFE_TOPICS.map(t=>[t.id,{summary:'Overview',insightOne:'First reading insight',insightTwo:'Second reading insight',watchOutFor:'A conditional watch-out',nextStep:'A practical step',basis:'Invented authority'}]));
+test('seven sections retain their fixed topic lens and direct reading insights',()=>{
  const result=parseLifeAreas(fixture());
  assert.equal(result.length,7);
- assert.equal(result.reduce((n,a)=>n+a.questions.length,0),14);
- assert.match(result.find(a=>a.id==='money')!.basis,/cannot establish income/);
+ assert.equal(result.reduce((n,a)=>n+a.insights.length,0),14);
+ assert.match(result.find(a=>a.id==='money')!.basis,/Fate-line/);
  assert.ok(result.every(a=>a.basis!=='Invented authority'));
- const incomplete=fixture();delete incomplete.romance.answerOne;
+ const incomplete=fixture();delete incomplete.romance.insightOne;
  assert.throws(()=>parseLifeAreas(incomplete));
  const old=JSON.parse(sampleReading.readingText);assert.doesNotThrow(()=>parseReadingContent(old));
  assert.doesNotThrow(()=>parseReadingContent({...old,lifeAreas:result}));
