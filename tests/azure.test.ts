@@ -1,3 +1,4 @@
+const generatedCaptions=()=>['Planning','Imagination','Rest'].map(theme=>({theme,text:'This palm gives '+theme.toLowerCase()+' a starring role in the next chapter.'}));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {azureConfig, readPalm, roastPalmReading} from '../server/palm';
@@ -14,12 +15,14 @@ const names=['Inner World','Work and Direction','Relationships','Everyday Balanc
 test('roast rewriting preserves the original observations and image quality',async()=>{
  const base=JSON.parse(sampleReading.readingText);
  const rewritten:any=structuredClone(base);
+ rewritten.shareLines=generatedCaptions();
  rewritten.aspects=Object.fromEntries(['innerWorld','workDirection','relationships','everydayBalance'].map((key,i)=>[key,{summary:'A comic rewrite',detailedInterpretation:base.aspects[i].detailedInterpretation,palmEvidence:'Invented broken line'}]));
  rewritten.imageQualityCheck.notes='Changed photo assessment';
  const result=await roastPalmReading(base,config,async()=>reply(rewritten));
  assert.deepEqual(result.aspects.map(a=>a.palmEvidence),base.aspects.map((a:any)=>a.palmEvidence));
  assert.deepEqual(result.imageQualityCheck,base.imageQualityCheck);
  assert.equal(result.aspects[0].summary,'A comic rewrite');
+ assert.deepEqual(result.shareLines,rewritten.shareLines);
 });
 test('Azure credentials require a complete trusted HTTPS resource endpoint',()=>{
   assert.equal(azureConfig({}),null);
@@ -45,6 +48,7 @@ test('Azure image request uses strict structured output, server credentials and 
     if(calls===1)assert.equal(request.messages[1].content[1].image_url.url,'data:image/png;base64,test-image');
     else assert.equal(request.messages[1].content.some((item:any)=>item.type==='image_url'),false);
     const report=JSON.parse(sampleReading.readingText);
+    report.shareLines=generatedCaptions();
     report.aspects.forEach((aspect:any,i:number)=>{aspect.aspectName=names[i];aspect.referenceIds=['HR5'];aspect.palmEvidence='A made-up Mercury line';});
     return calls===1?reply(observation):reply({...report,isPalm:true});
   };
@@ -54,6 +58,7 @@ test('Azure image request uses strict structured output, server credentials and 
   assert.ok(result.aspects.every(a=>!a.palmEvidence.includes('Mercury')));
   assert.equal(calls,3);
   assert.equal(result.lifeAreas?.length,7);
+  assert.deepEqual(result.shareLines,generatedCaptions());
 });
 
 test('both voices reject unrecognized aspect structure',async()=>{

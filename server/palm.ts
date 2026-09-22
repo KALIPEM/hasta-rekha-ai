@@ -4,11 +4,13 @@ import {palmSystemPrompt, hasGroundedEvidence, PALM_RULES} from './palm-traditio
 import type {ReadingContent} from '../src/types';
 import {observationSchema,OBSERVATION_PROMPT,groundObservations} from './palm-observations';
 import {generateLifeAreas} from './life-areas';
+import {shareLinesSchema,requireShareLines} from './share-prompt';
 type Schema = Record<string, unknown>;
 const string = {type: 'string'};
 const object = (properties: Record<string, Schema>): Schema => ({type: 'object', properties, required: Object.keys(properties), additionalProperties: false});
 const array = (items: Schema): Schema => ({type: 'array', items});
 const schema = object({
+  shareLines:shareLinesSchema,
   isPalm: {type: 'boolean'},
   imageQualityCheck: object({clarity: string, confidenceImpact: string, notes: string}),
   openingHook: string, majorHighlight: string, executiveSummary: string,
@@ -104,6 +106,7 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
       throw new HttpError(502,'The reading did not include a clear traditional basis. Please try again.');
     }
   }
+  value.shareLines=requireShareLines(value.shareLines);
   const reading = parseReadingContent(value);
   reading.aspects.sort((a,b)=>anchors.findIndex(item=>item.aspectName===a.aspectName)-anchors.findIndex(item=>item.aspectName===b.aspectName));
   reading.imageQualityCheck={clarity:assessment.description,confidenceImpact:'Visibility only; not certainty about personality or future events.',notes:'Unclear features remain uncertain and are not interpreted as missing or broken.'};
@@ -118,7 +121,7 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
 
 export async function roastPalmReading(base:ReadingContent,config:AzureConfig,fetcher:typeof fetch=fetch):Promise<ReadingContent> {
   const prose=object({summary:string,detailedInterpretation:string});
-  const rewriteSchema=object({openingHook:string,majorHighlight:string,executiveSummary:string,
+  const rewriteSchema=object({shareLines:shareLinesSchema,openingHook:string,majorHighlight:string,executiveSummary:string,
     aspects:object({innerWorld:prose,workDirection:prose,relationships:prose,everydayBalance:prose}),recommendedActions:array(string)});
   let response:Response;
   try {
@@ -136,7 +139,7 @@ export async function roastPalmReading(base:ReadingContent,config:AzureConfig,fe
   try {
     const rewritten=JSON.parse(body.choices[0].message.content);
     const keys=['innerWorld','workDirection','relationships','everydayBalance'];
-    roast=parseReadingContent({...base,openingHook:rewritten.openingHook,majorHighlight:rewritten.majorHighlight,executiveSummary:rewritten.executiveSummary,recommendedActions:rewritten.recommendedActions,
+    roast=parseReadingContent({...base,shareLines:requireShareLines(rewritten.shareLines),openingHook:rewritten.openingHook,majorHighlight:rewritten.majorHighlight,executiveSummary:rewritten.executiveSummary,recommendedActions:rewritten.recommendedActions,
       aspects:base.aspects.map((aspect,i)=>({...aspect,summary:rewritten.aspects[keys[i]].summary,detailedInterpretation:rewritten.aspects[keys[i]].detailedInterpretation}))});
   }catch {throw new HttpError(502,'The roast was incomplete. Please try again.');}
   roast.imageQualityCheck=base.imageQualityCheck;

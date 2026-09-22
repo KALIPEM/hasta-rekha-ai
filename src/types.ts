@@ -19,6 +19,7 @@ export interface AspectReading {
 }
 
 export interface ReadingContent {
+  shareLines?: {theme:string;text:string}[];
   lifeAreas?: LifeAreaReading[];
   imageQualityCheck: {
     clarity: string;

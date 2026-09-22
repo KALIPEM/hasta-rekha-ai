@@ -1,3 +1,4 @@
+const generatedCaptions=()=>['Planning','Imagination','Rest'].map(theme=>({theme,text:'This palm gives '+theme.toLowerCase()+' a starring role in the next chapter.'}));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateInput} from '../server/validation';
@@ -25,7 +26,7 @@ test('couple observations reject missing, duplicate, out of range, invented and 
 });
 test('couple pipeline isolates partners, preserves side labels, and supplies only observations to comparison',async()=>{
   let count=0;
-  const report={openingHook:'A conversation for two.',majorHighlight:'Different rhythms',executiveSummary:'A symbolic reflection.',areas:Object.fromEntries(COUPLE_AREAS.map(([key])=>[key,{summary:'Explore together.',detail:'Ask each other what feels supportive.',palmEvidence:'invented'}])),actions:['Ask each other about boundaries.']};
+  const report={shareLines:generatedCaptions(),openingHook:'A conversation for two.',majorHighlight:'Different rhythms',executiveSummary:'A symbolic reflection.',areas:Object.fromEntries(COUPLE_AREAS.map(([key])=>[key,{summary:'Explore together.',detail:'Ask each other what feels supportive.',palmEvidence:'invented'}])),actions:['Ask each other about boundaries.']};
   const result=await readCouple({...input,partners:[input.partners[0],{...input.partners[1],dominantHand:'Left'}]},config,async(_url,init)=>{
     const body=JSON.parse(init!.body as string);count++;
     assert.equal(body.max_completion_tokens,3000);assert.equal(body.store,false);
@@ -34,6 +35,7 @@ test('couple pipeline isolates partners, preserves side labels, and supplies onl
     const partners=JSON.parse(body.messages[1].content);assert.equal(partners[0].hands[0].role,'Dominant');assert.equal(partners[1].hands[0].role,'Non-dominant');assert.equal(partners[0].hands[0].element,'Air');
     return reply(report);
   });
+  assert.deepEqual(result.shareLines,generatedCaptions());
   assert.equal(count,3);assert.equal(result.aspects.length,5);assert.match(result.aspects[0].palmEvidence,/Male partner: Right \(Dominant\): heart line curved/);assert.match(result.aspects[0].palmEvidence,/Female partner: Right \(Non-dominant\): heart line straight/);assert.match(result.aspects[3].palmEvidence,/not_visible/);assert.equal(result.overallConfidence,0);assert.equal(result.lifeTimeline.length,0);
 });
 test('couple truncation fails without retry or additional billed requests',async()=>{
