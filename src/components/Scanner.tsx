@@ -1,6 +1,6 @@
 import {requireReadingCredit} from '../lib/credits';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { ArrowLeft, ArrowRight, Camera, Check, Flame, Hand, ImagePlus, LoaderCircle, ShieldCheck, Sparkles, Sun, Upload, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, Flame, Hand, Heart, ImagePlus, LoaderCircle, ShieldCheck, Sparkles, Sun, Upload, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { generatePalmReading, type PalmImage } from '../lib/gemini-utils';
 import { saveReading } from '../lib/reading-store';
@@ -26,7 +26,7 @@ interface Props { onCancel: () => void; onScanComplete: (r: Reading) => void; in
 export function Scanner(props:Props) {
   const [kind,setKind]=useState<'individual'|'couple'>('individual');
   const [locked,setLocked]=useState(false);
-  return <><div className="section-width reading-mode-picker" role="group" aria-label="Reading mode"><button disabled={locked} className={kind==='individual'?'button button-brand':'button button-outline'} onClick={()=>setKind('individual')}>Individual reading</button><button disabled={locked} className={kind==='couple'?'button button-brand':'button button-outline'} onClick={()=>setKind('couple')}>Couple matching</button></div>{kind==='couple'?<CoupleScanner {...props} prepareImage={prepareImage} onBusy={setLocked}/>:<IndividualScanner {...props} onBusy={setLocked}/>}</>;
+  return <><div className="section-width reading-mode-picker" role="group" aria-label="Choose a reading type"><button disabled={locked} aria-pressed={kind==='individual'} className={kind==='individual'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('individual')}><span className="reading-mode-icon"><Hand size={22}/></span><span><strong>Individual reading</strong><small>One palm · a personal reading · ₹20</small></span><ArrowRight size={18}/></button><button disabled={locked} aria-pressed={kind==='couple'} className={kind==='couple'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('couple')}><span className="reading-mode-icon"><Heart size={21}/></span><span><strong>Couple reading</strong><small>Two palms · your shared dynamic · ₹30</small></span><ArrowRight size={18}/></button></div>{kind==='couple'?<CoupleScanner {...props} prepareImage={prepareImage} onBusy={setLocked}/>:<IndividualScanner {...props} onBusy={setLocked}/>}</>;
 }
 function IndividualScanner({ onCancel, onScanComplete, initialRoast, status, onSample, onPricing, onBusy }: Props & {onBusy:(v:boolean)=>void}) {
   const { user } = useAuth();
