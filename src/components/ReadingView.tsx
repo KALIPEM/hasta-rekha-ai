@@ -6,8 +6,12 @@ import { renameReading } from '../lib/reading-store';
 import { PalmIllustration } from './PalmIllustration';
 import type { Reading, ReadingContent } from '../types';
 import {getShareLines,shareCaption} from '../lib/share-lines';
+import {readingExcerpts} from '../lib/reading-excerpts';
+import {deliverShare} from '../lib/share-delivery';
+import {ExcerptPicker} from './ExcerptPicker';
 interface Props { reading: Reading; onBack: () => void; onStart: () => void; onUpdateTitle: (s: string) => void }
 export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false), [title, setTitle] = useState(reading.title || 'My palm reading'), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
   let content: ReadingContent | null = null; try { content = parseReadingContent(reading.readingText); } catch {}
   async function rename() {
@@ -19,12 +23,13 @@ export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) 
   }
   const shareLines=getShareLines(content,reading.mode==='roast');
   const isCouple=reading.mainFocus==='Couple compatibility';
+  const excerptSharingEnabled = import.meta.env.VITE_EXCERPT_SHARING !== 'false';
+  const excerptGroups = excerptSharingEnabled ? readingExcerpts(content, reading.readingText) : [];
   async function share(line:string,copy=false) {
     try {
       const text=shareCaption(line,reading.mode==='roast',content);
-      if (!copy && navigator.share) await navigator.share({ title: 'Hasta Rekha', text });
-      else if (navigator.clipboard) { await navigator.clipboard.writeText(text); setNotice('Your caption is copied. Paste it into your social post or story.'); }
-      else setNotice('Sharing isn’t supported in this browser. Download your report instead.');
+      const result = await deliverShare(text, copy);
+      if (result === 'copied') setNotice('Your caption is copied. Paste it into your social post or story.');
     } catch (e: any) { if (e.name !== 'AbortError') setNotice('We couldn’t share this time. You can download a copy instead.'); }
   }
   function download() {
@@ -62,6 +67,8 @@ export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) 
       <section id="small-steps" className="actions-section"><div><div className="eyebrow">{isCouple?'TAKE THIS INTO THE TWO OF YOU':'TAKE A LITTLE WISDOM WITH YOU'}</div><h2>{isCouple?'Small steps.\nTogether.':'Small steps.\nYour own pace.'}</h2></div><ol>{content.recommendedActions.map((a, i) => <li key={i}><span>{i+1}</span>{a}</li>)}</ol></section>
     </> : <section className="legacy-reading markdown-body"><ReactMarkdown>{reading.readingText}</ReactMarkdown></section>}
     <section id="share-lines" className="report-section"><div className="eyebrow">A LITTLE SOMETHING FOR THE GROUP CHAT</div><h2>{reading.mode==='roast'?'Take the joke with you.':'A thought worth sharing.'}</h2><p className="muted">Written with this reading, for sharing on its own. Review your caption before posting; only the selected text is shared.</p>{!shareLines.length && <p className="notice">This saved report has no generated captions. New readings include their own shareable lines.</p>}<div className="share-lines-grid">{shareLines.map(line=><section className="share-line-card" key={line.text}><span className="eyebrow">{line.theme}</span><blockquote>{line.text}</blockquote><small>{line.intro}</small><div><button className="button button-brand button-small" onClick={()=>void share(line.text)}><Share2 size={15}/> Share this line</button><button className="button button-outline button-small" onClick={()=>void share(line.text,true)}>Copy caption</button></div></section>)}</div></section>
+    {excerptGroups.length > 0 && <div className="excerpt-entry"><button className="button button-outline" onClick={() => setPickerOpen(true)}><Share2 size={16}/> Choose from my reading</button></div>}
+    {pickerOpen && excerptSharingEnabled && <ExcerptPicker groups={excerptGroups} reading={reading} onClose={() => setPickerOpen(false)}/>}
     <div className="report-end"><span>✧</span><p>Your story is still yours to write.</p><button className="button button-brand" onClick={onStart}>Begin another reading <ArrowRight size={16}/></button></div>
   </article>;
 }

@@ -20,6 +20,17 @@ test('sharing uses this report’s generated captions and never unrelated report
  assert.notDeepEqual(getShareLines(content,false),getShareLines(other,false));
  assert.throws(()=>shareCaption(lines()[0].text,false,other));
 });
+test('saved captions without generated intros remain available alongside the excerpt picker',()=>{
+ const oldLines=lines().map(({theme,text})=>({theme,text}));
+ const content={...JSON.parse(sampleReading.readingText),shareLines:oldLines};
+ for(const roast of [false,true]){
+  assert.deepEqual(getShareLines(content,roast).map(({theme,text})=>({theme,text})),oldLines);
+  assert.ok(shareCaption(oldLines[0].text,roast,content).includes(oldLines[0].text));
+ }
+ // New AI responses must still provide their generated introductions.
+ assert.throws(()=>requireShareLines(oldLines));
+ assert.deepEqual(getShareLines({...content,shareLines:lines().map(l=>({...l,intro:'Visit https://example.com'}))},false),[]);
+});
 test('old and malformed reports do not silently receive template captions',()=>{
  assert.deepEqual(getShareLines(null,false),[]);
  assert.deepEqual(getShareLines(JSON.parse(sampleReading.readingText),false),[]);

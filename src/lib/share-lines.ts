@@ -10,8 +10,16 @@ export function validShareLines(value:unknown): value is ShareLine[] {
     !/[\r\n<>]|https?:|www\.|@|\d{5,}/i.test(line.theme+' '+line.text+' '+line.intro)
   ) && new Set(value.map(line=>line.text.trim().toLowerCase())).size===3;
 }
-export function getShareLines(content:ReadingContent|null,_roast:boolean){
-  return validShareLines(content?.shareLines)?content.shareLines:[];
+export function getShareLines(content:ReadingContent|null,roast:boolean){
+  const saved:unknown=content?.shareLines;
+  if(validShareLines(saved))return saved;
+  // Saved captions predate generated intros. Preserve the original caption;
+  // only add a plain attribution, never invent a replacement share suggestion.
+  if(!Array.isArray(saved))return [];
+  const legacy=saved.map(line=>line && line.intro===undefined
+    ? {...line,intro:roast?'My AI palmist roasted me 💀🔥 — from my Hasta Rekha reading:':'A line from a Hasta Rekha palm reading:'}
+    : line);
+  return validShareLines(legacy)?legacy:[];
 }
 export function shareCaption(text:string,roast:boolean,content:ReadingContent|null){
   const line=getShareLines(content,roast).find(line=>line.text===text);

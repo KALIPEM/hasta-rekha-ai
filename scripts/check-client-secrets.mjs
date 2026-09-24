@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 dotenv.config({path:['.env.local','.env'],quiet:true});
-const allowed=new Set(['VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY']);
+const allowed=new Set(['VITE_SUPABASE_URL','VITE_SUPABASE_ANON_KEY','VITE_EXCERPT_SHARING']);
+if(process.env.VITE_EXCERPT_SHARING && !['true','false'].includes(process.env.VITE_EXCERPT_SHARING))throw new Error('VITE_EXCERPT_SHARING must be true or false.');
 for(const name of Object.keys(process.env)){
   if(name.startsWith('VITE_')&&!allowed.has(name))throw new Error(`Unapproved browser environment variable: ${name}`);
 }
