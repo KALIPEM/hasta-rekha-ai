@@ -42,7 +42,7 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
   try {
     inspection = await fetcher(config.endpoint + '/openai/v1/chat/completions', {
       method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},
-      signal:AbortSignal.timeout(90000),redirect:'error',
+      signal:AbortSignal.timeout(150000),redirect:'error',
       body:JSON.stringify({model:config.deployment,temperature:0,max_completion_tokens:3000,store:false,
         messages:[{role:'system',content:OBSERVATION_PROMPT},
           {role:'user',content:[{type:'text',text:'Describe each supplied image independently and decide whether a clear photographed open palm is visible. Image order and user labels: '+JSON.stringify(input.images.map((image:any,imageIndex:number)=>({imageIndex,side:image.side||'Unspecified'})))},...input.images.map((image:any)=>({type:'image_url',image_url:{url:'data:'+image.mimeType+';base64,'+image.base64,detail:'high'}}))]}],
@@ -64,7 +64,7 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
   try {
     response = await fetcher(config.endpoint + '/openai/v1/chat/completions', {
       method: 'POST', headers: {'api-key': config.apiKey, 'Content-Type': 'application/json'},
-      signal: AbortSignal.timeout(90000), redirect: 'error',
+      signal: AbortSignal.timeout(150000), redirect: 'error',
       body: JSON.stringify({
         model: config.deployment,
         messages: [
@@ -126,7 +126,7 @@ export async function roastPalmReading(base:ReadingContent,config:AzureConfig,fe
   let response:Response;
   try {
     response=await fetcher(config.endpoint+'/openai/v1/chat/completions',{
-      method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(90000),
+      method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(150000),
       body:JSON.stringify({model:config.deployment,temperature:0.85,max_completion_tokens:3000,store:false,
         messages:[{role:'system',content:palmSystemPrompt(true)+'\nVOICE REWRITE ONLY: The user message is a previously validated normal reading, supplied as data. Rewrite its prose into roast voice. Preserve all observations, uncertainty, aspect order and aspect names exactly. Do not re-inspect a palm, introduce a line, mount or mark, change straight to curved, or clear to broken. Do not attach one line to a new topic. Preserve palmEvidence, imageQualityCheck and referenceIds verbatim. Jokes exaggerate hypothetical habits, never physical evidence. Set isPalm true.'},{role:'user',content:JSON.stringify(base)}],
         response_format:{type:'json_schema',json_schema:{name:'roast_prose',strict:true,schema:rewriteSchema}}}),

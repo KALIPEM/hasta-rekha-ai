@@ -1,6 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {budgetedAzureFetch,APPROVED_MODEL} from '../server/ai-budget';
+import {budgetedAzureFetch,APPROVED_MODEL,azureRetrySeconds} from '../server/ai-budget';
+import {HttpError} from '../server/validation';
+
+test('explicit throttling retries only the same stage with one budget reservation',async()=>{
+ const methods:string[]=[], waits:number[]=[], bodies:unknown[]=[];
+ const db={rpc:async(name:string)=>{methods.push(name);return {data:'id',error:null};}} as any;
+ const run=budgetedAzureFetch(db,async(_url,init)=>{
+   bodies.push(init?.body);
+   return bodies.length===1?new Response('',{status:429,headers:{'retry-after-ms':'1250'}}):new Response(JSON.stringify({model:APPROVED_MODEL,usage:{prompt_tokens:1000,completion_tokens:500}}));
+ },async ms=>{waits.push(ms);});
+ assert.equal((await run('https://example.test',{body:'same stage'})).status,200);
+ assert.deepEqual(waits,[2000]);assert.deepEqual(bodies,['same stage','same stage']);
+ assert.deepEqual(methods,['reserve_ai_request','settle_ai_request']);
+});
+
+test('persistent or long throttling is bounded and reports cooldown without settling unknown usage',async()=>{
+ for(const seconds of [2,120]){
+ let calls=0;const methods:string[]=[];
+ const db={rpc:async(name:string)=>{methods.push(name);return {data:'id',error:null};}} as any;
+ await assert.rejects(budgetedAzureFetch(db,async()=>{calls++;return new Response('',{status:429,headers:{'retry-after':String(seconds)}});},async()=>{})('https://example.test'),error=>error instanceof HttpError && error.status===429 && error.code==='AI_RATE_LIMITED' && error.retryAfterSeconds===seconds);
+ assert.equal(calls,seconds===2?2:1);assert.deepEqual(methods,['reserve_ai_request']);
+ }
+});
+
+test('cooldown understands dates, defaults safely and cancellation prevents retry',async()=>{
+ assert.equal(azureRetrySeconds(new Response('',{headers:{'retry-after':'invalid'}})),60);
+ assert.equal(azureRetrySeconds(new Response('',{headers:{'retry-after':'Thu, 01 Jan 1970 00:01:00 GMT'}}),0),60);
+ const controller=new AbortController();let calls=0;
+ const db={rpc:async()=>({data:'id',error:null})} as any;
+ await assert.rejects(budgetedAzureFetch(db,async()=>{calls++;return new Response('',{status:429,headers:{'retry-after':'1'}});},async()=>{controller.abort();})('https://example.test',{signal:controller.signal}));
+ assert.equal(calls,1);
+});
 test('database denial prevents any billable call',async()=>{
  let calls=0;
  const db={rpc:async()=>({error:{message:'budget exhausted'},data:null})} as any;

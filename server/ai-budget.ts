@@ -1,11 +1,12 @@
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {HttpError} from './validation';
+import {setTimeout as delay} from 'node:timers/promises';
 
 type BudgetDatabase = Pick<SupabaseClient, 'rpc'>;
 export const APPROVED_MODEL = 'gpt-4.1-mini-2025-04-14';
 
 // All app AI calls go through this wrapper. No local counters or cached balance.
-export function budgetedAzureFetch(database: BudgetDatabase, network: typeof fetch = fetch): typeof fetch {
+export function budgetedAzureFetch(database: BudgetDatabase, network: typeof fetch = fetch, wait: (ms:number,signal?:AbortSignal)=>Promise<void> = async(ms,signal)=>{await delay(ms,undefined,{signal});}): typeof fetch {
   return async (url, init) => {
     const reservation = await database.rpc('reserve_ai_request');
     if (reservation.error || typeof reservation.data !== 'string') {
@@ -13,7 +14,23 @@ export function budgetedAzureFetch(database: BudgetDatabase, network: typeof fet
     }
     // Do not retry, refund, or expire a reservation on network failure:
     // Azure may already have processed (and billed) the request.
-    const response = await network(url, init);
+    let response = await network(url, init);
+    // Only an explicit throttling rejection may retry. Keep the same budget
+    // reservation and stage; never replay earlier successful report stages.
+    if(response.status===429){
+      const seconds=azureRetrySeconds(response);
+      if(seconds<=60 && !init?.signal?.aborted){
+        await response.body?.cancel();
+        await wait(seconds*1000,init?.signal ?? undefined);
+        init?.signal?.throwIfAborted();
+        response=await network(url,init);
+      }
+      if(response.status===429){
+        const retryAfter=azureRetrySeconds(response);
+        console.warn(JSON.stringify({event:'azure_throttled',retryAfterSeconds:retryAfter}));
+        throw new HttpError(429,`Azure is temporarily limiting reading requests. Please wait ${retryAfter} seconds before trying again. No reading credit was used for this attempt.`,retryAfter,'AI_RATE_LIMITED');
+      }
+    }
     if (response.ok) {
       const body = await response.clone().json().catch(() => null);
       const usage = body?.usage;
@@ -29,4 +46,17 @@ export function budgetedAzureFetch(database: BudgetDatabase, network: typeof fet
     }
     return response;
   };
+}
+
+export function azureRetrySeconds(response:Response,now=Date.now()):number {
+  const ms=response.headers.get('retry-after-ms');
+  if(ms!==null && ms.trim() && Number.isFinite(Number(ms)) && Number(ms)>=0)return Math.max(1,Math.ceil(Number(ms)/1000));
+  const value=response.headers.get('retry-after');
+  if(value!==null && value.trim()){
+    const seconds=Number(value);
+    if(Number.isFinite(seconds) && seconds>=0)return Math.max(1,Math.ceil(seconds));
+    const date=Date.parse(value);
+    if(Number.isFinite(date))return Math.max(1,Math.ceil((date-now)/1000));
+  }
+  return 60;
 }

@@ -133,7 +133,8 @@ export function createApi() {
   app.use('/api', (_req,res) => res.status(404).json({error:'API route not found.'}));
   app.use((error: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = error instanceof HttpError ? error.status : error.type === 'entity.too.large' ? 413 : error instanceof SyntaxError ? 400 : 500;
-    res.status(status).json({error:error instanceof HttpError ? error.message : status === 413 ? 'These photos are too large. Try smaller images.' : status === 400 ? 'Invalid request.' : 'The service could not complete your request. Please try again.'});
+    if(error instanceof HttpError && error.retryAfterSeconds)res.setHeader('Retry-After',String(error.retryAfterSeconds));
+    res.status(status).json({error:error instanceof HttpError ? error.message : status === 413 ? 'These photos are too large. Try smaller images.' : status === 400 ? 'Invalid request.' : 'The service could not complete your request. Please try again.',...(error instanceof HttpError && error.code?{code:error.code,retryAfterSeconds:error.retryAfterSeconds}:{})});
   });
   return app;
 }

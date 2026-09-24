@@ -32,7 +32,7 @@ Do not assume relationship status, orientation, partner behavior, number of marr
 ${roast?'Rewrite the supplied life reading into witty, sharp Gen Z prose while preserving its findings, meaning, uncertainty and practical substance. Keep money guidance clear; roast hypothetical shopping habits, not poverty or debt. Give each topic its own comic angle.':'Speak like a thoughtful palmist having a rich conversation, with warm detail and varied imagery. Explore possibilities without claiming fixed fate.'}`;
  let response:Response;
  try {response=await fetcher(config.endpoint+'/openai/v1/chat/completions',{
-  method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(90000),
+  method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(150000),
   body:JSON.stringify({model:config.deployment,temperature:roast?0.85:0.65,max_completion_tokens:3000,store:false,
    messages:[{role:'system',content:prompt},{role:'user',content:JSON.stringify({reading:base,topics:LIFE_TOPICS})}],
    response_format:{type:'json_schema',json_schema:{name:'life_reading',strict:true,schema}}})});

@@ -15,7 +15,7 @@ const reportSchema=object({shareLines:shareLinesSchema,openingHook:text,majorHig
 
 async function completion(config:AzureConfig,fetcher:typeof fetch,schema:any,name:string,messages:any[],temperature:number) {
   let response:Response;
-  try {response=await fetcher(config.endpoint+'/openai/v1/chat/completions',{method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(90000),body:JSON.stringify({model:config.deployment,messages,temperature,max_completion_tokens:3000,store:false,response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}})});}
+  try {response=await fetcher(config.endpoint+'/openai/v1/chat/completions',{method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(150000),body:JSON.stringify({model:config.deployment,messages,temperature,max_completion_tokens:3000,store:false,response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}})});}
   catch(error){if(error instanceof HttpError)throw error;throw new HttpError(502,'The couple reading service could not be reached.');}
   if(!response.ok)throw new HttpError(response.status===429?429:502,'The couple reading could not be completed. Please try later.');
   const body:any=await response.json().catch(()=>null);
