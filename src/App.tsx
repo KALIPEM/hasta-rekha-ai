@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Hand, Menu, Sparkles, X, LogOut } from 'lucide-react';
+import { ArrowRight, BookOpen, Hand, Menu, Sparkles, X, LogOut } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
@@ -47,6 +47,10 @@ function AppContent() {
           <button className="icon-button mobile-menu" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X/> : <Menu/>}</button>
         </div>
       </div>
+      <nav className="mobile-reading-nav" aria-label="Reading shortcuts">
+        <button aria-current={view === 'scan' ? 'page' : undefined} onClick={() => start()}><Hand size={17}/> New reading</button>
+        <button aria-current={view === 'history' || view === 'reading' && !reading.isSample ? 'page' : undefined} onClick={() => { setMenuOpen(false); history(); }}><BookOpen size={17}/> My readings</button>
+      </nav>
     </header>
     <main id="main">
       {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>}
