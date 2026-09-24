@@ -6,6 +6,14 @@ import {getPlan, validateInput, verifySignature} from '../server/validation';
 import {parseReadingContent} from '../src/lib/reading-content';
 import {sampleReading} from '../src/lib/sample-reading';
 const valid = {images:[{mimeType:'image/jpeg',base64:Buffer.from([255,216,255,224,1,2,3,4]).toString('base64')}],dominantHand:'Right-handed',ageRange:'25–34',mainFocus:'Overall life path',isRoastMode:false,title:'Test'};
+
+test('individual uploads accept either hand alone and reject ambiguous labels',()=>{
+ for(const side of ['Left','Right'])assert.equal(validateInput({...valid,images:[{...valid.images[0],side}]}).images[0].side,side);
+ const pair=['Left','Right'].map(side=>({...valid.images[0],side}));
+ assert.deepEqual(validateInput({...valid,images:pair}).images,pair);
+ assert.equal(validateInput(valid).images.length,1);
+ for(const images of [[pair[0],pair[0]],[pair[0],valid.images[0]],[{...pair[0],side:'Unknown'}]])assert.throws(()=>validateInput({...valid,images}));
+});
 test('server owns plan prices and rejects prototype keys',()=>{
  assert.equal(getPlan('mystic').amount,8000);assert.equal(getPlan('deepdive').credits,1);assert.equal(getPlan('deepdive').amount,2000);assert.equal(getPlan('mystic').credits,5);assert.equal(getPlan('couple').amount,3000);assert.equal(getPlan('couple').credits,1);
  for(const plan of ['toString','__proto__','free',null])assert.throws(()=>getPlan(plan));

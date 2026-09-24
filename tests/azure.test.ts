@@ -6,9 +6,9 @@ import {sampleReading} from '../src/lib/sample-reading';
 import {LIFE_TOPICS} from '../server/life-areas';
 
 const config = {endpoint:'https://test.openai.azure.com',apiKey:'test-secret',deployment:'test-vision'};
-const input = {images:[{mimeType:'image/png',base64:'test-image'}],dominantHand:'Right-handed',ageRange:'Prefer not to say',mainFocus:'Overall life path',isRoastMode:false};
+const input = {images:[{mimeType:'image/png',base64:'test-image',side:'Right'}],dominantHand:'Right-handed',ageRange:'Prefer not to say',mainFocus:'Overall life path',isRoastMode:false};
 const reply = (value:unknown,reason='stop') => new Response(JSON.stringify({choices:[{finish_reason:reason,message:{content:JSON.stringify(value)}}]}));
-const observedLine={visibility:'visible',shape:'curved',continuity:'continuous'};
+const observedLine={visibility:'visible',shape:'curved',continuity:'continuous',course:'arcs across centre',endpoints:'uncertain',branches:'uncertain',crossings:'uncertain',localClarity:'clear central segment'};
 const observation={description:'A photographed open palm',isOpenPalm:true,hands:[{imageIndex:0,heart:observedLine,head:observedLine,life:observedLine,fate:observedLine}]};
 const names=['Inner World','Work and Direction','Relationships','Everyday Balance'];
 
@@ -40,13 +40,19 @@ test('Azure image request uses strict structured output, server credentials and 
     assert.equal(init?.redirect,'error');
     const request=JSON.parse(init?.body as string);
     assert.equal(request.model,config.deployment);
-    assert.equal(request.max_completion_tokens,calls===1?1600:3000);
+    assert.equal(request.max_completion_tokens,3000);
     assert.equal(request.temperature,calls===1?0:0.65);
     assert.equal(request.store,false);
     assert.equal(request.response_format.json_schema.strict,true);
     assert.equal(request.response_format.json_schema.schema.additionalProperties,false);
-    if(calls===1)assert.equal(request.messages[1].content[1].image_url.url,'data:image/png;base64,test-image');
-    else assert.equal(request.messages[1].content.some((item:any)=>item.type==='image_url'),false);
+    if(calls===1){
+      assert.equal(request.messages[1].content[1].image_url.url,'data:image/png;base64,test-image');
+      assert.match(request.messages[1].content[0].text,/"side":"Right"/);
+    } else {
+      assert.equal(request.messages[1].content.some((item:any)=>item.type==='image_url'),false);
+      const data=JSON.parse(request.messages[1].content[0].text);
+      assert.match(data.aspects[0].palmEvidence,/Right palm.*arcs across centre.*clear central segment/);
+    }
     const report=JSON.parse(sampleReading.readingText);
     report.shareLines=generatedCaptions();
     report.aspects.forEach((aspect:any,i:number)=>{aspect.aspectName=names[i];aspect.referenceIds=['HR5'];aspect.palmEvidence='A made-up Mercury line';});

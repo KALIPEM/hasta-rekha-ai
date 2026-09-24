@@ -43,9 +43,9 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
     inspection = await fetcher(config.endpoint + '/openai/v1/chat/completions', {
       method:'POST',headers:{'api-key':config.apiKey,'Content-Type':'application/json'},
       signal:AbortSignal.timeout(90000),redirect:'error',
-      body:JSON.stringify({model:config.deployment,temperature:0,max_completion_tokens:1600,store:false,
+      body:JSON.stringify({model:config.deployment,temperature:0,max_completion_tokens:3000,store:false,
         messages:[{role:'system',content:OBSERVATION_PROMPT},
-          {role:'user',content:[{type:'text',text:'Describe these images and decide whether a clear photographed open palm is visible.'},...input.images.map((image:any)=>({type:'image_url',image_url:{url:'data:'+image.mimeType+';base64,'+image.base64,detail:'high'}}))]}],
+          {role:'user',content:[{type:'text',text:'Describe each supplied image independently and decide whether a clear photographed open palm is visible. Image order and user labels: '+JSON.stringify(input.images.map((image:any,imageIndex:number)=>({imageIndex,side:image.side||'Unspecified'})))},...input.images.map((image:any)=>({type:'image_url',image_url:{url:'data:'+image.mimeType+';base64,'+image.base64,detail:'high'}}))]}],
         response_format:{type:'json_schema',json_schema:{name:'image_inspection',strict:true,schema:observationSchema}}}),
     });
   } catch(error) {
@@ -58,8 +58,8 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
   try {assessment=JSON.parse(inspected?.choices?.[0]?.message?.content);} catch {throw new HttpError(502,'The image inspection was incomplete. Please try again.');}
   if(inspected?.choices?.[0]?.finish_reason!=='stop') throw new HttpError(502,'The image inspection was incomplete. Please try again.');
   if(assessment?.isOpenPalm!==true) throw new HttpError(422,'We couldn’t see a clear photographed open palm. Please upload a sharper photo with your fingers and wrist visible.');
-  const anchors=groundObservations(assessment,input.images.length);
-  const systemInstruction = palmSystemPrompt(false)+'\nGROUNDED WRITING STAGE: You receive recorded observations, not images. Do not re-detect or invent features. Use the exact supplied aspectName, palmEvidence and referenceIds for each aspect. A rule applies only to its assigned aspect and feature. Where no feature is visible, offer an explicitly general reflection instead of manufacturing an interpretation. Do not introduce mounts or Mercury lines. Shape uncertain does not mean straight; continuity uncertain does not mean broken. You have full creative freedom in delivery, metaphors, warmth and narrative rhythm within those anchors.';
+  const anchors=groundObservations(assessment,input.images.length,input.images.map((image:any)=>image.side));
+  const systemInstruction = palmSystemPrompt(false)+'\nGROUNDED WRITING STAGE: You receive recorded observations, not images. Do not re-detect or invent features. Use the exact supplied aspectName and referenceIds for each aspect. Return an empty string for each aspect palmEvidence; the server attaches its recorded evidence verbatim after generation. A rule applies only to its assigned aspect and feature. Where no feature is visible, offer an explicitly general reflection instead of manufacturing an interpretation. Do not introduce mounts or Mercury lines. Shape uncertain does not mean straight; continuity uncertain does not mean broken. Build each interpretation around the specific course, endpoints and confidently observed fine details, not just straight/curved categories. Compare labelled hands only when both resolve the same feature; do not claim differences where observations match. Never manufacture rare signs or dramatic outcomes to make reports unique. You have full creative freedom in delivery, metaphors, warmth and narrative rhythm within those anchors.';
   let response: Response;
   try {
     response = await fetcher(config.endpoint + '/openai/v1/chat/completions', {

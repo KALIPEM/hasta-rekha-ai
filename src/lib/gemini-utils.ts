@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client';
 import { parseReadingContent } from './reading-content';
-export interface PalmImage {base64: string; mimeType: string}
+export interface PalmImage {base64: string; mimeType: string; side?: 'Left' | 'Right'}
 export async function apiRequest(url: string, body?: unknown, signal?: AbortSignal) {
   const session = await supabase?.auth.getSession();
   const token = session?.data.session?.access_token;

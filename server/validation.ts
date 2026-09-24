@@ -23,6 +23,8 @@ export function validateInput(body: any) {
     return {readingKind:'couple',partners,images:partners.flatMap((p:any)=>p.photos),title:body.title?.trim()||'Our couple reading',mainFocus:'Couple compatibility',isRoastMode:false};
   }
   if (!body || !Array.isArray(body.images) || body.images.length < 1 || body.images.length > 2) throw new HttpError(400, 'Add one or two palm photos.');
+  const sides=body.images.map((image:any)=>image?.side);
+  if(sides.some((side:unknown)=>side!==undefined) && (sides.some((side:unknown)=>!['Left','Right'].includes(side as string)) || new Set(sides).size!==sides.length)) throw new HttpError(400,'Label each palm separately as Left or Right.');
   for (const image of body.images) {
     if (!image || !['image/jpeg','image/png','image/webp'].includes(image.mimeType) || typeof image.base64 !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(image.base64) || image.base64.length > 7000000) throw new HttpError(400, 'Choose a valid JPG, PNG, or WebP photo under 5 MB after resizing.');
     const bytes = Buffer.from(image.base64, 'base64');

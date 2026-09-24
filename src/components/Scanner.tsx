@@ -1,5 +1,5 @@
 import {requireReadingCredit} from '../lib/credits';
-import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Camera, Check, Flame, Hand, Heart, ImagePlus, LoaderCircle, ShieldCheck, Sparkles, Sun, Upload, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { generatePalmReading, type PalmImage } from '../lib/gemini-utils';
@@ -15,7 +15,7 @@ async function prepareImage(file: File): Promise<PalmImage> {
   const url = URL.createObjectURL(file);
   try {
     const image = new Image(); image.src = url; await image.decode();
-    if (Math.min(image.width, image.height) < 160) throw new Error('That photo is too small. Choose a sharper photo with your whole palm visible.');
+    if (Math.min(image.width, image.height) < 256) throw new Error('That photo is too small. Choose a sharper photo with your whole palm visible.');
     const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
     const canvas = document.createElement('canvas'); canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
     const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Your browser could not prepare the image.');
@@ -27,34 +27,38 @@ interface Props { onCancel: () => void; onScanComplete: (r: Reading) => void; in
 export function Scanner(props:Props) {
   const [kind,setKind]=useState<'individual'|'couple'>('individual');
   const [locked,setLocked]=useState(false);
-  return <><div className="section-width reading-mode-picker" role="group" aria-label="Choose a reading type"><button disabled={locked} aria-pressed={kind==='individual'} className={kind==='individual'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('individual')}><span className="reading-mode-icon"><Hand size={22}/></span><span><strong>Individual reading</strong><small>One palm · a personal reading · ₹20</small></span><ArrowRight size={18}/></button><button disabled={locked} aria-pressed={kind==='couple'} className={kind==='couple'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('couple')}><span className="reading-mode-icon"><Heart size={21}/></span><span><strong>Couple reading</strong><small>Two palms · your shared dynamic · ₹30</small></span><ArrowRight size={18}/></button></div>{kind==='couple'?<CoupleScanner {...props} prepareImage={prepareImage} onBusy={setLocked}/>:<IndividualScanner {...props} onBusy={setLocked}/>}</>;
+  return <><div className="section-width reading-mode-picker" role="group" aria-label="Choose a reading type"><button disabled={locked} aria-pressed={kind==='individual'} className={kind==='individual'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('individual')}><span className="reading-mode-icon"><Hand size={22}/></span><span><strong>Individual reading</strong><small>One or both palms · a personal reading · ₹20</small></span><ArrowRight size={18}/></button><button disabled={locked} aria-pressed={kind==='couple'} className={kind==='couple'?'reading-mode-option selected':'reading-mode-option'} onClick={()=>setKind('couple')}><span className="reading-mode-icon"><Heart size={21}/></span><span><strong>Couple reading</strong><small>Two palms · your shared dynamic · ₹30</small></span><ArrowRight size={18}/></button></div>{kind==='couple'?<CoupleScanner {...props} prepareImage={prepareImage} onBusy={setLocked}/>:<IndividualScanner {...props} onBusy={setLocked}/>}</>;
 }
 function IndividualScanner({ onCancel, onScanComplete, initialRoast, status, onSample, onPricing, onBusy }: Props & {onBusy:(v:boolean)=>void}) {
   const { user } = useAuth();
-  const [step, setStep] = useState(1), [files, setFiles] = useState<File[]>([]), [error, setError] = useState(''), [dragging, setDragging] = useState(false);
+  const [step, setStep] = useState(1), [files, setFiles] = useState<Partial<Record<'Left'|'Right',File>>>({}), [error, setError] = useState(''), [dragging, setDragging] = useState<string | null>(null);
   const [hand, setHand] = useState('Right-handed'), [age, setAge] = useState(''), [focus, setFocus] = useState(focuses[0]), [title, setTitle] = useState('My palm reading'), [roast, setRoast] = useState(initialRoast);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(0), [showRoastWarning,setShowRoastWarning]=useState(false);
   useEffect(()=>{onBusy(busy);return()=>onBusy(false);},[busy,onBusy]);
   const request = useRef<AbortController | null>(null);
-  const [previews, setPreviews] = useState<string[]>([]);
-  useEffect(() => { const urls = files.map(f => URL.createObjectURL(f)); setPreviews(urls); return () => urls.forEach(url => URL.revokeObjectURL(url)); }, [files]);
+  const sides = ['Left','Right'] as const;
+  const count = Object.keys(files).length;
+  const [previews, setPreviews] = useState<Partial<Record<'Left'|'Right',string>>>({});
+  useEffect(() => { const urls = Object.fromEntries(Object.entries(files).map(([side,file])=>[side,URL.createObjectURL(file)])); setPreviews(urls); return () => Object.values(urls).forEach(url => URL.revokeObjectURL(url)); }, [files]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => { if (!busy) return; const interval = setInterval(() => setMessage(i => (i + 1) % 3), 5500); return () => clearInterval(interval); }, [busy]);
-  function addFiles(incoming: File[]) {
-    if (incoming.some(f => !allowedTypes.includes(f.type))) return setError('Choose JPG, PNG, or WebP photos. Other file types are not supported.');
-    if (incoming.some(f => f.size > 10 * 1024 * 1024)) return setError('Each photo must be under 10 MB.');
-    if (incoming.length + files.length > 2) return setError('You can add up to two photos. Remove one to replace it.');
-    setFiles([...files, ...incoming]); setError('');
+  function addFile(side:'Left'|'Right', incoming:File[]) {
+    if (!incoming.length) return;
+    if (incoming.length !== 1) return setError('Choose one photo for each hand field.');
+    const file=incoming[0];
+    if (!allowedTypes.includes(file.type)) return setError('Choose JPG, PNG, or WebP photos.');
+    if (file.size > 10 * 1024 * 1024) return setError('Each photo must be under 10 MB.');
+    setFiles(old=>({...old,[side]:file})); setError('');
   }
-  function drop(e: DragEvent) { e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files)); }
   async function generate() {
     if (!user) { setError('Please sign in to save your reading.'); return; }
+    if (!count) { setError('Add a photo of either palm.'); setStep(1); return; }
     if (!age) { setError('Select your age range.'); setStep(1); return; }
     setBusy(true); setError(''); request.current = new AbortController();
     try {
       if(status.billingConfigured && !await requireReadingCredit('individual',onPricing)) return;
       setStep(3);
-      const images = await Promise.all(files.map(prepareImage));
+      const images = await Promise.all(sides.filter(side=>files[side]).map(async side=>({...await prepareImage(files[side]!),side})));
       const generated = await generatePalmReading(images, hand, age, focus, roast, request.current.signal, title);
       if (request.current.signal.aborted) return;
       const result: Reading = { id: generated.savedReadingId || crypto.randomUUID(), userId: user.id, title: title.trim() || 'My palm reading', readingText: generated.readingText, createdAt: Date.now(), mode: roast ? 'roast' : 'standard', mainFocus: focus };
@@ -74,13 +78,13 @@ function IndividualScanner({ onCancel, onScanComplete, initialRoast, status, onS
     <div className="scanner-heading"><div className="eyebrow">A MOMENT FOR YOU</div><h1>{step === 1 ? 'Let’s see your palm.' : step === 2 ? 'Make this reading yours.' : 'Your story is taking shape.'}</h1><p>{step === 1 ? 'We recommend one clear photo of each palm for more context. The second photo is optional; one palm is enough to continue.' : step === 2 ? 'A little context helps us choose a more meaningful perspective.' : 'We’re exploring the visible lines through a Vedic lens.'}</p></div>
     <ol className="wizard-steps">{['Your photo', 'Your perspective', 'Your reading'].map((label, i) => <li key={label} className={step === i+1 ? 'current' : step > i+1 ? 'complete' : ''} aria-current={step === i+1 ? 'step' : undefined}><span>{step > i+1 ? <Check size={13}/> : i+1}</span>{label}</li>)}</ol>
     {step === 1 && <div className="scanner-grid"><div className="upload-panel">
-      <div className={dragging ? 'drop-zone dragging' : 'drop-zone'} onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={drop}>
-        {files.length < 2 ? <><span className="upload-icon"><Hand size={36} strokeWidth={1.2}/></span><h3>Your palm, in focus.</h3><p>Drag a photo here, or choose one below.</p><label className="button button-brand upload-label"><Upload size={16}/> Choose photos<input className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}/></label><label className="camera-link"><Camera size={15}/> Take a photo<input className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}/></label><small>JPG, PNG, WEBP · Up to 10 MB each · 1–2 photos</small></> : <><Check size={36}/><h3>Your photos are added.</h3><p>Ready for a new perspective?</p></>}
-      </div>
-      {files.length > 0 && <div className="photo-previews">{files.map((file, i) => <div key={`${file.name}-${file.lastModified}-${i}`} className="photo-preview"><img src={previews[i]} alt={`Selected palm photo ${i+1}`}/><span>{file.name}</span><button className="icon-button" aria-label={`Remove photo ${i+1}`} onClick={() => { setFiles(files.filter((_, n) => n !== i)); setError(''); }}><X size={15}/></button></div>)}</div>}
-      {files.length === 1 && <p className="photo-guide-intro">You can add your other palm too, or continue with this photo.</p>}
+      <div className="couple-photo-grid individual-photo-grid">{sides.map(side=><div key={side} className={dragging===side?'couple-photo individual-photo dragging':'couple-photo individual-photo'} onDragOver={e=>{e.preventDefault();setDragging(side);}} onDragLeave={()=>setDragging(null)} onDrop={e=>{e.preventDefault();setDragging(null);addFile(side,Array.from(e.dataTransfer.files));}}>
+        <span className="field-label">{side} palm</span><p>Choose or take one clear photo.</p>
+        <div className="couple-photo-actions"><label className="couple-upload-button"><Upload size={15}/>{files[side]?'Replace':'Choose'}<input aria-label={side+' palm photo'} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{addFile(side,Array.from(e.target.files||[]));e.target.value='';}}/></label><label className="couple-camera-button"><Camera size={15}/> Camera<input aria-label={'Take '+side.toLowerCase()+' palm photo'} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{addFile(side,Array.from(e.target.files||[]));e.target.value='';}}/></label></div>
+        {files[side]&&<div className="photo-preview"><img src={previews[side]} alt={side+' palm preview'}/><span>{files[side]!.name}</span><button type="button" className="icon-button" aria-label={'Remove '+side.toLowerCase()+' palm photo'} onClick={()=>{setFiles(old=>{const next={...old};delete next[side];return next;});setError('');}}><X size={15}/></button></div>}
+      </div>)}</div><p className="photo-guide-intro">Add either hand to continue. Both are recommended, but the second photo is optional. JPG, PNG or WebP · up to 10 MB each.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <label className="field">Your age range (required)<select required value={age} onChange={e => setAge(e.target.value)}><option value="" disabled>Select your age range</option>{['18–24', '25–34', '35–44', '45–54', '55–64', '65+'].map(a => <option key={a}>{a}</option>)}</select></label><div className="upload-footer"><span><ShieldCheck size={15}/> Photos aren’t saved with your report.</span><button className="button button-dark" disabled={!files.length || !age} onClick={() => { setStep(2); setError(''); }}>Continue <ArrowRight size={16}/></button></div>
+      <label className="field">Your age range (required)<select required value={age} onChange={e => setAge(e.target.value)}><option value="" disabled>Select your age range</option>{['18–24', '25–34', '35–44', '45–54', '55–64', '65+'].map(a => <option key={a}>{a}</option>)}</select></label><div className="upload-footer"><span><ShieldCheck size={15}/> Photos aren’t saved with your report.</span><button className="button button-dark" disabled={!count || !age} onClick={() => { setStep(2); setError(''); }}>Continue <ArrowRight size={16}/></button></div>
     </div><aside className="photo-tips"><PalmIllustration/><h3>Frame your palm like this.</h3><p className="photo-guide-intro">Keep the marked lines, the thumb base and the outer palm edge visible in one clear photo.</p><ul><li><Sun size={18}/> Use soft, natural light with no flash glare.</li><li><Hand size={18}/> Open your hand and relax your fingers.</li><li><ImagePlus size={18}/> Include your palm, fingers, wrist and pinky-side edge.</li><li><Check size={18}/> Keep the heart and head lines sharp and in focus.</li></ul></aside></div>}
     {step === 2 && <div className="perspective-panel">
       <form onSubmit={e => { e.preventDefault(); requestReading(); }}>
