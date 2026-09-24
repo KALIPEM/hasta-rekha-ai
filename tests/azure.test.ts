@@ -1,4 +1,4 @@
-const generatedCaptions=()=>['Planning','Imagination','Rest'].map(theme=>({theme,text:'This palm gives '+theme.toLowerCase()+' a starring role in the next chapter.'}));
+const generatedCaptions=()=>['Planning','Imagination','Rest'].map(theme=>({theme,text:'This palm gives '+theme.toLowerCase()+' a starring role in the next chapter.',intro:'A line from my palm reading about '+theme.toLowerCase()+'.'}));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {azureConfig, readPalm, roastPalmReading} from '../server/palm';
