@@ -1598,7 +1598,7 @@ details>p{
   font-size:33px}
 }
 
-.roast-warning-symbol{display:grid;place-items:center;width:72px;height:72px;margin:0 0 20px;background:#f6df9e;border:2px solid #393126;border-radius:8px;color:#26231e;font-size:52px;line-height:1}
+.roast-warning-symbol{display:grid;place-items:center;width:72px;height:72px;margin:0 auto 20px;background:#f6df9e;border:2px solid #393126;border-radius:8px;color:#26231e;font-size:52px;line-height:1}
 .excerpt-entry{margin-top:24px}
 .modal:has(.excerpt-picker){width:min(700px,100%)}
 .excerpt-picker{min-width:0;text-align:left}
