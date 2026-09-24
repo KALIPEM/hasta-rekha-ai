@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {getShareLines,shareCaption,validShareLines} from '../src/lib/share-lines';
+import {getShareLines,PUBLIC_APP_URL,shareCaption,validShareLines} from '../src/lib/share-lines';
 import {requireShareLines} from '../server/share-prompt';
 import {sampleReading} from '../src/lib/sample-reading';
 
@@ -12,7 +12,8 @@ const lines=()=>[
 test('sharing uses this report’s generated captions and never unrelated report prose',()=>{
  const content={...JSON.parse(sampleReading.readingText),shareLines:lines(),openingHook:'Private report detail'};
  assert.deepEqual(getShareLines(content,true),lines());
- assert.match(shareCaption(lines()[0].text,true,content),/Palm roast/);
+ assert.match(shareCaption(lines()[0].text,true,content),/Hasta Rekha palm roast/);
+ assert.match(shareCaption(lines()[0].text,true,content),new RegExp(PUBLIC_APP_URL.replaceAll('.','\\.')));
  assert.doesNotMatch(shareCaption(lines()[0].text,true,content),/Private report detail/);
  assert.throws(()=>shareCaption(content.openingHook,true,content));
  const other={...content,shareLines:lines().map(l=>({...l,text:l.text+' Again.'}))};

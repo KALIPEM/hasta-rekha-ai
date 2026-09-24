@@ -1,5 +1,6 @@
 import type {ReadingContent} from '../types';
 export interface ShareLine {theme:string;text:string}
+export const PUBLIC_APP_URL='https://hasta.sadhanaboard.com';
 // Defense in depth, not a guarantee of semantic privacy.
 export function validShareLines(value:unknown): value is ShareLine[] {
   return Array.isArray(value) && value.length===3 && value.every(line=>
@@ -13,5 +14,6 @@ export function getShareLines(content:ReadingContent|null,_roast:boolean){
 }
 export function shareCaption(text:string,roast:boolean,content:ReadingContent|null){
   if(!getShareLines(content,roast).some(line=>line.text===text))throw new Error('Choose a caption from this reading.');
-  return text+'\n\nHasta Rekha · '+(roast?'Palm roast':'Palm reading')+' #HastaRekha';
+  const readingType=roast?'palm roast':'palm reading';
+  return 'A line from a Hasta Rekha '+readingType+':\n\n“'+text+'”\n\nGet your own reading: '+PUBLIC_APP_URL+'\n#HastaRekha';
 }
