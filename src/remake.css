@@ -722,6 +722,15 @@ details>p{
   padding:4px 25px 25px;
   background:#eeeee4;
   border-radius:5px}
+.photo-tips>.palm-illustration{
+  display:block;
+  width:min(100%,310px);
+  margin:-16px auto -28px}
+.photo-guide-intro{
+  margin:8px 0 0;
+  color:#727a64;
+  font-size:10px;
+  line-height:1.55}
 .palm-illustration.small{
   max-width:250px;
   margin:0 auto}
