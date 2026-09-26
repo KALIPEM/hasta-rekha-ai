@@ -22,7 +22,7 @@ In the Supabase SQL editor, inspect usage with `select limit_microusd/1e6 as cap
 
 ## Supabase
 
-The migrations in `supabase/migrations/` have already been applied to the connected project using its dashboard. Do not blindly rerun them there. For a new project, apply them once in date order and update the public URL/key settings. Email signups and email confirmation are enabled. The current auth Site URL is http://localhost:3000; update it and allowed redirect URLs when deploying.
+The migrations in `supabase/migrations/` have already been applied to the connected project using its dashboard. Do not blindly rerun them there. For a new project, apply them once in date order and update the public URL/key settings. Email signups and email confirmation are enabled. Google sign-in is supported through Supabase OAuth; enable Google under Supabase Authentication > Providers and add the Google client ID/secret, then allow both the local and hosted app origins in Supabase redirect settings. The current auth Site URL is http://localhost:3000; update it and allowed redirect URLs when deploying.
 
 `readings` contains reports, `profiles` holds balances, and `payment_orders` tracks payment fulfillment. Row-level security isolates reports by authenticated user. Clients can rename their own reports but cannot change credits or fulfill payments. Supabase is the sole persistent data store.
 

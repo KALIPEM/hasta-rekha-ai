@@ -1306,6 +1306,14 @@ details>p{
   margin:auto}
 .full-width{
   width:100%}
+.google-button{
+  background:#fff;
+  border:1px solid #d8d0c2;
+  color:#343831;
+  justify-content:center;
+  gap:10px}
+.google-button:hover:not(:disabled){background:#f5f1ea;border-color:#b8aa95}
+.google-mark{font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#4285f4}
 .form-divider{
   display:flex;
   align-items:center;
