@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Download, Edit3, Eye, Flame, Heart, Share2, Sparkles, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { parseReadingContent } from '../lib/reading-content';
@@ -9,8 +9,11 @@ import {getShareLines,shareCaption} from '../lib/share-lines';
 import {readingExcerpts} from '../lib/reading-excerpts';
 import {deliverShare} from '../lib/share-delivery';
 import {ExcerptPicker} from './ExcerptPicker';
+import {printReadingPdf} from '../lib/reading-pdf';
 interface Props { reading: Reading; onBack: () => void; onStart: () => void; onUpdateTitle: (s: string) => void }
 export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) {
+  const reportRef=useRef<HTMLElement>(null);
+  const [pdfBusy,setPdfBusy]=useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false), [title, setTitle] = useState(reading.title || 'My palm reading'), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
   let content: ReadingContent | null = null; try { content = parseReadingContent(reading.readingText); } catch {}
@@ -32,23 +35,15 @@ export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) 
       if (result === 'copied') setNotice('Your caption is copied. Paste it into your social post or story.');
     } catch (e: any) { if (e.name !== 'AbortError') setNotice('We couldn’t share this time. You can download a copy instead.'); }
   }
-  function download() {
-    const text = content ? [
-      '# ' + (reading.title || 'My palm reading'), '', reading.isSample ? 'ILLUSTRATIVE SAMPLE — NO PHOTO ANALYZED' : 'PALM READING', '',
-      content.majorHighlight, content.openingHook, '', content.executiveSummary, '',
-      ...content.aspects.flatMap(a => ['## ' + a.aspectName, a.summary, '', a.detailedInterpretation, '', 'Palm detail: ' + a.palmEvidence, '']),
-      ...(content.lifeAreas ?? []).flatMap(a=>['## '+a.title,a.summary,'',...a.insights,'','Watch out for: '+a.watchOutFor,'Try this: '+a.nextStep,'']),
-      '## Past, present & future', ...content.lifeTimeline.flatMap(t => [t.ageRange + ': ' + t.phaseName, t.keyEventOrShift, t.palmEvidence, '']),
-      '## Patterns to reflect on', ...content.behavioralPatterns.flatMap(p => [p.pattern, p.evidence, '']),
-      '## Small steps to try', ...content.recommendedActions.map(a => '- ' + a), '',
-      '## Thoughts worth sharing', ...shareLines.map(line=>line.text), '',
-      'Hasta Rekha'
-    ].join('\n') : reading.readingText;
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
-    const link = document.createElement('a'); link.href = url; link.download = 'hasta-rekha-reading.md'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  async function download() {
+    if(!reportRef.current || pdfBusy)return;
+    setPdfBusy(true);setNotice('Choose Save as PDF in the print dialog. All reading sections are included.');
+    try {await printReadingPdf(reportRef.current,reading.title || 'My palm reading');}
+    catch {setNotice('We could not open the PDF dialog. Please try again.');}
+    finally {setPdfBusy(false);}
   }
-  return <article className={isCouple?'report-page section-width couple-report-page':'report-page section-width'}>
-    <div className="report-toolbar"><button className="back-link" onClick={onBack}><ArrowLeft size={16}/>{reading.isSample ? 'Back to discover' : 'My readings'}</button><div><a className="button button-outline button-small" href="#share-lines"><Share2 size={15}/><span>Share a line</span></a><button className="button button-outline button-small" aria-label="Download report" onClick={download}><Download size={15}/><span>Download</span></button></div></div>
+  return <article ref={reportRef} className={isCouple?'report-page section-width couple-report-page':'report-page section-width'}>
+    <div className="report-toolbar"><button className="back-link" onClick={onBack}><ArrowLeft size={16}/>{reading.isSample ? 'Back to discover' : 'My readings'}</button><div><a className="button button-outline button-small" href="#share-lines"><Share2 size={15}/><span>Share a line</span></a><button className="button button-outline button-small" aria-label="Download report as PDF" disabled={pdfBusy} onClick={()=>void download()}><Download size={15}/><span>{pdfBusy?'Preparing PDF…':'Download PDF'}</span></button></div></div>
     {reading.isSample && <div className="sample-notice"><Eye size={18}/><span>You’re exploring an illustrative sample. No photo has been analyzed.</span><button className="inline-link" onClick={onStart}>Get your own reading <ArrowRight size={14}/></button></div>}
     {reading.storageWarning && <p className="notice" role="alert">{reading.storageWarning}</p>}
     {notice && <p className="notice" role="status">{notice}</p>}

@@ -1,0 +1,32 @@
+.reading-pdf-root{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm;@bottom-center{content:"Hasta Rekha · " counter(page) " / " counter(pages);font-family:Arial,sans-serif;font-size:8pt;color:#6c7067}}
+  html:has(body.printing-reading),body.printing-reading{background:#f8f5ef!important;overflow:visible!important;height:auto!important}
+  body.printing-reading>*:not(.reading-pdf-root){display:none!important}
+  body.printing-reading>.reading-pdf-root{display:block!important;color:#292d28;background:#f8f5ef;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .reading-pdf-root *{animation:none!important;transition:none!important;box-shadow:none!important}
+  .reading-pdf-root .report-page{width:100%;max-width:none;margin:0;padding:0}
+  .reading-pdf-root .pdf-brand{display:flex;flex-direction:column;align-items:center;gap:5px;border-bottom:1px solid #d9d0bf;padding-bottom:15px}
+  .reading-pdf-root .pdf-brand>a{font-family:var(--font-serif);font-size:32px;text-decoration:none;color:#9b5038}
+  .reading-pdf-root .pdf-brand>span{font-size:8px;letter-spacing:2px}
+  .reading-pdf-root .report-heading{padding:26px 0}
+  .reading-pdf-root .report-heading h1{font-size:38px}
+  .reading-pdf-root .report-section{margin-top:30px;padding-top:0}
+  .reading-pdf-root h2{font-size:30px}
+  .reading-pdf-root h3{font-size:24px}
+  .reading-pdf-root p{orphans:3;widows:3}
+  .reading-pdf-root h2,.reading-pdf-root h3,.reading-pdf-root h4,.reading-pdf-root summary,.reading-pdf-root .eyebrow{break-after:avoid}
+  .reading-pdf-root .report-section>.muted{break-after:avoid}
+  .reading-pdf-root .life-questions{break-before:page}
+  .reading-pdf-root #reflection-timeline{break-inside:avoid}
+  .reading-pdf-root .report-summary,.reading-pdf-root .patterns-grid>div,.reading-pdf-root .aspect-card,.reading-pdf-root .share-line-card,.reading-pdf-root .life-takeaways,.reading-pdf-root .actions-section,.reading-pdf-root .reflection-timeline>div{break-inside:avoid}
+  .reading-pdf-root .aspect-grid,.reading-pdf-root .patterns-grid,.reading-pdf-root .share-lines-grid{display:block}
+  .reading-pdf-root .aspect-card,.reading-pdf-root .patterns-grid>div,.reading-pdf-root .share-line-card{margin-bottom:18px}
+  .reading-pdf-root .life-area{display:block;break-inside:avoid}
+  .reading-pdf-root .life-area>summary{list-style:none;display:block}
+  .reading-pdf-root .life-area>summary::-webkit-details-marker{display:none}
+  .reading-pdf-root .palm-evidence{overflow-wrap:anywhere}
+  .reading-pdf-root .report-end{padding:25px 0}
+  .reading-pdf-root .pdf-backlink{text-align:center;border-top:1px solid #d9d0bf;padding-top:14px;font-size:12px;break-inside:avoid}
+  .reading-pdf-root .pdf-backlink a{color:#9b5038;text-decoration:underline}
+}
