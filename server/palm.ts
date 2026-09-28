@@ -115,7 +115,7 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
   }
   reading.overallConfidence = 0;
   for(const pattern of reading.behavioralPatterns) pattern.confidence = 0;
-  reading.lifeAreas=await generateLifeAreas(reading,config,fetcher);
+  reading.lifeAreas=await generateLifeAreas(reading,config,fetcher,false,{ageRange:input.ageRange,mainFocus:input.mainFocus});
   return reading;
 }
 
