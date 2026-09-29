@@ -1,7 +1,16 @@
-import { ArrowDown, ArrowRight, BookOpen, BriefcaseBusiness, Camera, Check, Compass, Flame, Heart, Leaf, ScanLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowRight, BookOpen, BriefcaseBusiness, Camera, Check, Compass, Flame, Hand, Heart, Leaf, ScanLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { PalmIllustration } from './PalmIllustration';
 interface Props { onStart: (roast?: boolean) => void; onSample: () => void; onPricing: () => void }
 export function LandingPage({ onStart, onSample, onPricing }: Props) {
+  const [handsRead, setHandsRead] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    const load = () => { fetch('/api/stats').then(response => response.ok ? response.json() : null).then(data => { if (active && Number.isFinite(data?.handsRead)) setHandsRead(data.handsRead); }).catch(() => {}); };
+    load();
+    const timer = window.setInterval(load, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
   return <div className="landing">
     <section className="hero section-width">
       <div className="hero-copy">
@@ -14,6 +23,16 @@ export function LandingPage({ onStart, onSample, onPricing }: Props) {
       <div className="hero-art"><span className="art-caption top">EVERY HAND IS A DIFFERENT STORY</span><PalmIllustration/><span className="art-caption bottom">HASTA SAMUDRIKA · THE ART OF PALM READING</span><div className="art-note"><Sparkles size={16}/><span>Ancient art.<br/><strong>New possibilities.</strong></span></div></div>
     </section>
     <div className="wisdom-strip"><span>ROOTED IN VEDIC TRADITION</span><span className="strip-star">✧</span><span>MADE FOR SELF-DISCOVERY</span><span className="strip-star">✧</span><span>THOUGHTFULLY POWERED BY AI</span></div>
+    <section className="landing-proof section-width" aria-label="Reading activity and pricing">
+      <div className="hands-read-stat"><span className="hands-read-icon"><Hand size={25} strokeWidth={1.3}/></span><div><strong>{handsRead === null ? '—' : handsRead.toLocaleString()}</strong><span>hands read so far</span></div></div>
+      <p>Every reading is created from the palm photos submitted by its reader.</p>
+    </section>
+    <section className="landing-pricing section-width" aria-labelledby="landing-pricing-title">
+      <div className="section-heading"><div><div className="eyebrow">READING OPTIONS</div><h2 id="landing-pricing-title">Choose your next reading.</h2></div><button className="inline-link" onClick={onPricing}>See checkout details <ArrowRight size={15}/></button></div>
+      <div className="landing-pricing-grid">
+        {[{label:'INDIVIDUAL',title:'One palm reading',price:'₹20',detail:'1 individual credit'}, {label:'COUPLE',title:'Two palms together',price:'₹30',detail:'1 couple credit'}, {label:'FAMILY PACK',title:'Five individual readings',price:'₹80',detail:'5 credits for 5 individuals'}].map(plan => <button className="landing-price-card" key={plan.label} onClick={onPricing}><span className="eyebrow">{plan.label}</span><h3>{plan.title}</h3><strong>{plan.price}</strong><span>{plan.detail} · one-time purchase</span><ArrowRight size={17}/></button>)}
+      </div>
+    </section>
     <section className="explore section-width" aria-labelledby="explore-title">
       <div className="section-heading"><div><div className="eyebrow">THERE’S MORE TO YOUR STORY</div><h2 id="explore-title">What are you curious about?</h2></div><p>Start with a question.<br/>See where your lines take you.</p></div>
       <div className="curiosity-grid">

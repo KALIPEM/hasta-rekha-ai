@@ -68,6 +68,12 @@ export function createApi() {
   app.use(express.json({limit:'30mb'}));
   app.get('/api/health', (_req,res) => res.json({status:'ok'}));
   app.get('/api/config', (_req,res) => res.json({aiConfigured:Boolean(ai && admin), billingConfigured:billing}));
+  app.get('/api/stats', wrap(async (_req,res) => {
+    if (!admin) return res.json({handsRead: null});
+    const {data,error} = await admin.rpc('get_total_hands_read');
+    if (error) return res.json({handsRead: null});
+    res.json({handsRead: Number(data) || 0});
+  }));
   app.get('/api/credits', wrap(async (req,res) => {
     const uid = await userId(req,true);
     if (!admin || !billing) return res.json({credits:0, coupleCredits:0, billingConfigured:false});
@@ -94,7 +100,7 @@ export function createApi() {
     let savedReadingId: string | undefined;
     if (billing && uid) {
       savedReadingId = randomUUID();
-      const {error} = await admin!.rpc('save_paid_palm_reading', {p_id:savedReadingId,p_user_id:uid,p_title:input.title,p_reading_text:JSON.stringify(content),p_mode:input.isRoastMode?'roast':'standard',p_main_focus:input.mainFocus});
+      const {error} = await admin!.rpc('save_paid_palm_reading', {p_id:savedReadingId,p_user_id:uid,p_title:input.title,p_reading_text:JSON.stringify(content),p_mode:input.isRoastMode?'roast':'standard',p_main_focus:input.mainFocus,p_hands_read:input.images.length});
       if (error) throw new HttpError(409,'The reading could not be saved or your credits changed. No credit was charged for this attempt.');
     }
     res.json({content,savedReadingId});
