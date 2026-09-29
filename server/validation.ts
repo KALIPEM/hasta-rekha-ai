@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 export class HttpError extends Error { constructor(public status: number, message: string, public retryAfterSeconds?: number, public code?: string) { super(message); } }
-export const plans = {deepdive: {amount: 2000, credits: 1, name: 'Individual reading'}, couple: {amount:3000,credits:1,name:'Couple reading'}, mystic: {amount: 8000, credits: 5, name: 'Family pack — 5 individuals'}, questions: {amount: 100, credits: 5, name: '5 follow-up questions'}} as const;
+export const plans = {deepdive: {amount: 2000, credits: 1, name: 'Individual reading'}, couple: {amount:3000,credits:1,name:'Match checking'}, mystic: {amount: 8000, credits: 5, name: 'Family pack — 5 individuals'}, questions: {amount: 100, credits: 5, name: '5 follow-up questions'}} as const;
 export function getPlan(value: unknown) {
   if (typeof value !== 'string' || !Object.hasOwn(plans, value)) throw new HttpError(400, 'Choose a valid reading pack.');
   return plans[value as keyof typeof plans];
