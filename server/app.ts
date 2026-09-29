@@ -74,6 +74,12 @@ export function createApi() {
     if (error) return res.json({handsRead: null});
     res.json({handsRead: Number(data) || 0});
   }));
+  app.get('/api/reviews', wrap(async (_req,res) => {
+    if (!admin) return res.json({reviews:[]});
+    const {data,error} = await admin.from('reviews').select('id,rating,review_text,created_at').eq('is_published',true).order('created_at',{ascending:false}).limit(12);
+    if (error) return res.json({reviews:[]});
+    res.json({reviews:data || []});
+  }));
   app.get('/api/credits', wrap(async (req,res) => {
     const uid = await userId(req,true);
     if (!admin || !billing) return res.json({credits:0, coupleCredits:0, questionCredits:0, billingConfigured:false});
@@ -138,6 +144,17 @@ export function createApi() {
     if (allowanceError) throw new HttpError(402,'Your three included follow-up questions are used. Add 5 more questions for ₹10.');
     const result = Array.isArray(allowance) ? allowance[0] : allowance;
     res.json({answer,freeRemaining:Number(result?.free_remaining || 0),paidRemaining:Number(result?.paid_remaining || 0),usedPaid:Boolean(result?.used_paid)});
+  }));
+  app.post('/api/reviews', wrap(async (req,res) => {
+    const uid = await userId(req,true);
+    if (!admin) throw new HttpError(503,'Reviews are not connected yet.');
+    const readingId = req.body?.readingId, rating = req.body?.rating, reviewText = typeof req.body?.reviewText === 'string' ? req.body.reviewText.trim().replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'') : '';
+    if (typeof readingId !== 'string' || !/^[0-9a-f-]{36}$/i.test(readingId) || !Number.isInteger(rating) || rating < 1 || rating > 5 || reviewText.length < 10 || reviewText.length > 500) throw new HttpError(400,'Choose 1–5 stars and write a review between 10 and 500 characters.');
+    const {data:reading,error:readingError} = await admin.from('readings').select('id').eq('id',readingId).eq('user_id',uid).maybeSingle();
+    if (readingError || !reading) throw new HttpError(404,'That reading could not be found.');
+    const {data,error} = await admin.from('reviews').upsert({user_id:uid,reading_id:readingId,rating,review_text:reviewText,is_published:rating >= 4},{onConflict:'user_id,reading_id'}).select('rating,review_text').single();
+    if (error) throw new HttpError(503,'Your review could not be saved. Please try again.');
+    res.json({review:data});
   }));
   app.post('/api/create-order', wrap(async (req,res) => {
     const plan = getPlan(req.body?.plan);

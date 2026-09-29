@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowRight, BookOpen, BriefcaseBusiness, Camera, Check, Compass, Flame, Hand, Heart, Leaf, ScanLine, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, BookOpen, BriefcaseBusiness, Camera, Check, Compass, Flame, Hand, Heart, Leaf, ScanLine, ShieldCheck, Sparkles, Star } from 'lucide-react';
 import { PalmIllustration } from './PalmIllustration';
 interface Props { onStart: (roast?: boolean) => void; onSample: () => void; onPricing: () => void }
 export function LandingPage({ onStart, onSample, onPricing }: Props) {
   const [handsRead, setHandsRead] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   useEffect(() => {
     let active = true;
     const load = () => { fetch('/api/stats').then(response => response.ok ? response.json() : null).then(data => { if (active && Number.isFinite(data?.handsRead)) setHandsRead(data.handsRead); }).catch(() => {}); };
@@ -11,6 +12,7 @@ export function LandingPage({ onStart, onSample, onPricing }: Props) {
     const timer = window.setInterval(load, 60000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
+  useEffect(() => { fetch('/api/reviews').then(response => response.ok ? response.json() : null).then(data => { if (Array.isArray(data?.reviews)) setReviews(data.reviews); }).catch(() => {}); }, []);
   return <div className="landing">
     <section className="hero section-width">
       <div className="hero-copy">
@@ -27,6 +29,7 @@ export function LandingPage({ onStart, onSample, onPricing }: Props) {
       <div className="hands-read-stat"><span className="hands-read-icon"><Hand size={25} strokeWidth={1.3}/></span><div><strong>{handsRead === null ? '—' : handsRead.toLocaleString()}</strong><span>hands read so far</span></div></div>
       <p>Every reading is created from the palm photos submitted by its reader.</p>
     </section>
+    {reviews.length > 0 && <section className="landing-reviews section-width" aria-labelledby="landing-reviews-title"><div className="section-heading"><div><div className="eyebrow">FROM THE READING ROOM</div><h2 id="landing-reviews-title">What readers are saying.</h2></div></div><div className="landing-reviews-grid">{reviews.slice(0,6).map(review => <article className="landing-review-card" key={review.id}><div className="review-stars" aria-label={`${review.rating} out of 5 stars`}>{Array.from({length:5},(_,index)=><Star key={index} size={15} fill={index < review.rating ? 'currentColor' : 'none'}/>)}</div><p>“{review.review_text}”</p></article>)}</div></section>}
     <section className="landing-pricing section-width" aria-labelledby="landing-pricing-title">
       <div className="section-heading"><div><div className="eyebrow">READING OPTIONS</div><h2 id="landing-pricing-title">Choose your next reading.</h2></div><button className="inline-link" onClick={onPricing}>See checkout details <ArrowRight size={15}/></button></div>
       <div className="landing-pricing-grid">
@@ -57,7 +60,7 @@ export function LandingPage({ onStart, onSample, onPricing }: Props) {
     <section className="roast-banner section-width"><div className="roast-symbol"><Flame size={34} strokeWidth={1.4}/></div><div><div className="eyebrow">A LITTLE COSMIC COMEDY</div><h2>Your palm has jokes, too.</h2><p>Feeling brave? Meet your Gen Z palmist: sharp jokes, blunt callouts, and no sugarcoating. All in good fun.</p></div><button className="button button-dark" onClick={() => onStart(true)}>Roast my palm <ArrowRight size={17}/></button></section>
     <section className="faq section-width"><div className="eyebrow">A FEW THINGS TO KNOW</div><h2>Curiosity, with clarity.</h2><div className="faq-grid">
       <details><summary>Is palmistry a scientific prediction?</summary><p>No. Palmistry is a cultural and spiritual tradition, not a scientifically validated way to establish personality, diagnose health, or predict events. Our readings are for entertainment and personal reflection.</p></details>
-      <details><summary>What happens to my photos?</summary><p>Your photo is sent to our server and Microsoft Azure OpenAI only when you request a reading. We do not store your photo with your reading. Your reports are saved privately in your account. Provider processing is subject to its policies.</p></details>
+      <details><summary>What happens to my photos?</summary><p>Your photo is sent to our server and Microsoft Azure OpenAI only when you request a reading. The original photo is stored in a private account-linked area so follow-up questions can re-check the same palm. Your reports and photos are not publicly listed. Provider processing is subject to its policies.</p></details>
       <details><summary>Can I try it without signing in?</summary><p>You can explore the sample anytime. Sign in to create your own readings and revisit your private library from any device.</p></details>
       <details><summary>What does a reading cost?</summary><p>The sample is always free. Choose ₹20 for one individual reading, ₹30 for one couple reading, ₹80 for five individual credits, or ₹10 for five follow-up questions on a saved reading. Checkout uses Razorpay when connected.</p><button className="inline-link" onClick={onPricing}>Explore reading options <ArrowRight size={15}/></button></details>
     </div></section>
