@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Download, Edit3, Eye, Flame, Heart, Share2, Sparkles, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, Download, Edit3, Eye, Flame, Heart, Share2, Sparkles, X, MessageCircle, Send, LoaderCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { parseReadingContent } from '../lib/reading-content';
 import { renameReading } from '../lib/reading-store';
@@ -10,12 +10,15 @@ import {readingExcerpts} from '../lib/reading-excerpts';
 import {deliverShare} from '../lib/share-delivery';
 import {ExcerptPicker} from './ExcerptPicker';
 import {printReadingPdf} from '../lib/reading-pdf';
-interface Props { reading: Reading; onBack: () => void; onStart: () => void; onUpdateTitle: (s: string) => void }
-export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) {
+import {apiRequest} from '../lib/gemini-utils';
+interface Props { reading: Reading; onBack: () => void; onStart: () => void; onPricing: () => void; onUpdateTitle: (s: string) => void }
+export function ReadingView({ reading, onBack, onStart, onPricing, onUpdateTitle }: Props) {
   const reportRef=useRef<HTMLElement>(null);
   const [pdfBusy,setPdfBusy]=useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false), [title, setTitle] = useState(reading.title || 'My palm reading'), [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
+  const [question,setQuestion]=useState(''), [questionAnswer,setQuestionAnswer]=useState(''), [questionError,setQuestionError]=useState(''), [questionBusy,setQuestionBusy]=useState(false), [freeRemaining,setFreeRemaining]=useState(Math.max(0,3-(reading.followupQuestionsUsed||0))), [paidRemaining,setPaidRemaining]=useState(0);
+  useEffect(() => { if (!reading.isSample) void apiRequest('/api/credits').then(data=>setPaidRemaining(Number(data.questionCredits||0))).catch(()=>{}); }, [reading.isSample]);
   let content: ReadingContent | null = null; try { content = parseReadingContent(reading.readingText); } catch {}
   async function rename() {
     if (!title.trim()) return;
@@ -42,6 +45,13 @@ export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) 
     catch {setNotice('We could not open the PDF dialog. Please try again.');}
     finally {setPdfBusy(false);}
   }
+  async function askQuestion(event: React.FormEvent) {
+    event.preventDefault(); const value=question.trim(); if(!value || questionBusy || !reading.id)return;
+    setQuestionBusy(true);setQuestionError('');setQuestionAnswer('');
+    try { const data=await apiRequest('/api/reading-followup',{readingId:reading.id,question:value}); setQuestionAnswer(data.answer);setFreeRemaining(Number(data.freeRemaining||0));setPaidRemaining(Number(data.paidRemaining||0));setQuestion(''); }
+    catch(error:any) { setQuestionError(error.message||'The follow-up could not be answered.'); if((error.message||'').includes('Add 5 more')) onPricing(); }
+    finally {setQuestionBusy(false);}
+  }
   return <article ref={reportRef} className={isCouple?'report-page section-width couple-report-page':'report-page section-width'}>
     <div className="report-toolbar"><button className="back-link" onClick={onBack}><ArrowLeft size={16}/>{reading.isSample ? 'Back to discover' : 'My readings'}</button><div><a className="button button-outline button-small" href="#share-lines"><Share2 size={15}/><span>Share a line</span></a><button className="button button-outline button-small" aria-label="Download report as PDF" disabled={pdfBusy} onClick={()=>void download()}><Download size={15}/><span>{pdfBusy?'Preparing PDF…':'Download PDF'}</span></button></div></div>
     {reading.isSample && <div className="sample-notice"><Eye size={18}/><span>You’re exploring an illustrative sample. No photo has been analyzed.</span><button className="inline-link" onClick={onStart}>Get your own reading <ArrowRight size={14}/></button></div>}
@@ -60,6 +70,7 @@ export function ReadingView({ reading, onBack, onStart, onUpdateTitle }: Props) 
       {content.lifeTimeline.length > 0 && <section id="reflection-timeline" className="report-section"><div className="eyebrow">THE PATTERN OF YOUR PATH</div><h2>Your past, present & future.</h2><p className="muted">The thread behind you, the choice in front of you, and the road taking shape.</p><div className="reflection-timeline">{content.lifeTimeline.map((t, i) => <div key={i}><span className="timeline-dot"/><span className="eyebrow">{t.ageRange}</span><h3>{t.phaseName}</h3><p>{t.keyEventOrShift}</p><small>{t.palmEvidence}</small></div>)}</div></section>}
       {content.behavioralPatterns.length > 0 && <section className="report-section"><div className="eyebrow">NOTICE WHAT RESONATES</div><h2>Patterns to sit with.</h2><div className="patterns-grid">{content.behavioralPatterns.map((p, i) => <div key={i}><Sparkles size={20}/><h3>{p.pattern}</h3><p>{p.evidence}</p></div>)}</div></section>}
       <section id="small-steps" className="actions-section"><div><div className="eyebrow">{isCouple?'TAKE THIS INTO THE TWO OF YOU':'TAKE A LITTLE WISDOM WITH YOU'}</div><h2>{isCouple?'Small steps.\nTogether.':'Small steps.\nYour own pace.'}</h2></div><ol>{content.recommendedActions.map((a, i) => <li key={i}><span>{i+1}</span>{a}</li>)}</ol></section>
+      {!reading.isSample && reading.id && <section id="follow-up" className="report-section followup-section"><div className="eyebrow"><MessageCircle size={15}/> ASK THIS READING</div><h2>Still curious about something?</h2><p className="muted">Ask up to three questions about this same palm reading. You have <strong>{freeRemaining}</strong> included and <strong>{paidRemaining}</strong> paid questions remaining.</p><form onSubmit={askQuestion} className="followup-form"><textarea value={question} onChange={e=>setQuestion(e.target.value)} maxLength={500} rows={3} placeholder="Ask about a line, timing, relationship, career choice or money pattern…" aria-label="Follow-up question"/><div className="followup-form-footer"><small>{question.length}/500</small><button className="button button-brand" disabled={questionBusy||question.trim().length<3}>{questionBusy?<><LoaderCircle size={15} className="spin"/>Reading the original palm…</>:<><Send size={15}/>Ask this question</>}</button></div></form>{questionAnswer&&<article className="followup-answer"><span className="eyebrow">YOUR PALM ANSWERS</span><p>{questionAnswer}</p></article>}{questionError&&<p className="form-error" role="alert">{questionError}</p>}</section>}
     </> : <section className="legacy-reading markdown-body"><ReactMarkdown>{reading.readingText}</ReactMarkdown></section>}
     <section id="share-lines" className="report-section"><div className="eyebrow">A LITTLE SOMETHING FOR THE GROUP CHAT</div><h2>{reading.mode==='roast'?'Take the joke with you.':'A thought worth sharing.'}</h2><p className="muted">Written with this reading, for sharing on its own. Review your caption before posting; only the selected text is shared.</p>{!shareLines.length && <p className="notice">This saved report has no generated captions. New readings include their own shareable lines.</p>}<div className="share-lines-grid">{shareLines.map(line=><section className="share-line-card" key={line.text}><span className="eyebrow">{line.theme}</span><blockquote>{line.text}</blockquote><small>{line.intro}</small><div><button className="button button-brand button-small" onClick={()=>void share(line.text)}><Share2 size={15}/> Share this line</button><button className="button button-outline button-small" onClick={()=>void share(line.text,true)}>Copy caption</button></div></section>)}</div></section>
     {excerptGroups.length > 0 && <div className="excerpt-entry"><button className="button button-outline" onClick={() => setPickerOpen(true)}><Share2 size={16}/> Choose from my reading</button></div>}

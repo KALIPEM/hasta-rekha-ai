@@ -57,7 +57,7 @@ function AppContent() {
       {view === 'home' && <LandingPage onStart={start} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
       {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={() => openReading(sampleReading)}/>}
       {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => setView('home')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
-      {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => setView(reading.isSample ? 'home' : 'history')} onStart={() => start()} onUpdateTitle={title => setReading({ ...reading, title })}/>}
+      {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => setView(reading.isSample ? 'home' : 'history')} onStart={() => start()} onPricing={() => setPricingOpen(true)} onUpdateTitle={title => setReading({ ...reading, title })}/>}
     </main>
     <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => setView('home')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
     {authOpen && <AuthScreen onBack={() => { setAuthOpen(false); if (!user) setPendingView(null); }}/>}

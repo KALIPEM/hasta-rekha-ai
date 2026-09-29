@@ -49,6 +49,7 @@ export interface Reading {
   isSample?: boolean;
   mainFocus?: string;
   storageWarning?: string;
+  followupQuestionsUsed?: number;
 }
 
 export interface LifeAreaReading {

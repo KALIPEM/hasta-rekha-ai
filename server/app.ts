@@ -76,12 +76,12 @@ export function createApi() {
   }));
   app.get('/api/credits', wrap(async (req,res) => {
     const uid = await userId(req,true);
-    if (!admin || !billing) return res.json({credits:0, coupleCredits:0, billingConfigured:false});
-    const {data,error} = await admin.from('profiles').select('credits,couple_credits').eq('user_id',uid).maybeSingle();
+    if (!admin || !billing) return res.json({credits:0, coupleCredits:0, questionCredits:0, billingConfigured:false});
+    const {data,error} = await admin.from('profiles').select('credits,couple_credits,question_credits').eq('user_id',uid).maybeSingle();
     if (error) throw new HttpError(503,'Could not load your balance.');
     const {data:orders,error:ordersError} = await admin.from('payment_orders').select('id,plan,amount,credits,created_at,fulfilled_at').eq('user_id',uid).order('created_at',{ascending:false}).limit(20);
     if(ordersError) throw new HttpError(503,'Could not load your purchase records. Please retry.');
-    res.json({credits:data?.credits || 0, coupleCredits:data?.couple_credits || 0, billingConfigured:true, pendingOrderId:orders?.find(order=>!order.fulfilled_at)?.id,purchases:orders||[]});
+    res.json({credits:data?.credits || 0, coupleCredits:data?.couple_credits || 0, questionCredits:data?.question_credits || 0, billingConfigured:true, pendingOrderId:orders?.find(order=>!order.fulfilled_at)?.id,purchases:orders||[]});
   }));
   app.post('/api/palm-reading', wrap(async (req,res) => {
     const input = validateInput(req.body);
@@ -100,10 +100,44 @@ export function createApi() {
     let savedReadingId: string | undefined;
     if (billing && uid) {
       savedReadingId = randomUUID();
-      const {error} = await admin!.rpc('save_paid_palm_reading', {p_id:savedReadingId,p_user_id:uid,p_title:input.title,p_reading_text:JSON.stringify(content),p_mode:input.isRoastMode?'roast':'standard',p_main_focus:input.mainFocus,p_hands_read:input.images.length});
+      const imagePaths = input.images.map((image:any, index:number) => `${uid}/${savedReadingId}/${index}-${image.side || 'unspecified'}.${image.mimeType === 'image/png' ? 'png' : image.mimeType === 'image/webp' ? 'webp' : 'jpg'}`);
+      for (const [index, image] of input.images.entries()) {
+        const {error: uploadError} = await admin!.storage.from('palm-images').upload(imagePaths[index], Buffer.from(image.base64, 'base64'), {contentType:image.mimeType, upsert:false});
+        if (uploadError) throw new HttpError(503, 'The palm image could not be secured for follow-up questions. Please try again.');
+      }
+      const {error} = await admin!.rpc('save_paid_palm_reading', {p_id:savedReadingId,p_user_id:uid,p_title:input.title,p_reading_text:JSON.stringify(content),p_mode:input.isRoastMode?'roast':'standard',p_main_focus:input.mainFocus,p_hands_read:input.images.length,p_image_paths:imagePaths});
       if (error) throw new HttpError(409,'The reading could not be saved or your credits changed. No credit was charged for this attempt.');
     }
     res.json({content,savedReadingId});
+  }));
+  app.post('/api/reading-followup', wrap(async (req,res) => {
+    const uid = await userId(req,true);
+    if (!ai || !admin) throw new HttpError(503, 'The reading service is not connected yet.');
+    const readingId = req.body?.readingId, question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
+    if (typeof readingId !== 'string' || !/^[0-9a-f-]{36}$/i.test(readingId) || question.length < 3 || question.length > 500) throw new HttpError(400, 'Ask a question between 3 and 500 characters.');
+    const {data: reading, error: readingError} = await admin.from('readings').select('reading_text,mode,main_focus,image_paths').eq('id',readingId).eq('user_id',uid).maybeSingle();
+    if (readingError || !reading) throw new HttpError(404, 'That saved reading could not be found.');
+    const images:any[] = [];
+    for (const path of (reading.image_paths || [])) {
+      const {data, error} = await admin.storage.from('palm-images').download(path);
+      if (error || !data) throw new HttpError(503, 'The original palm image could not be loaded for this question.');
+      images.push({type:'image_url', image_url:{url:`data:${path.endsWith('.png')?'image/png':path.endsWith('.webp')?'image/webp':'image/jpeg'};base64,${Buffer.from(await data.arrayBuffer()).toString('base64')}`, detail:'high'}});
+    }
+    let response:globalThis.Response;
+    try {
+      response = await budgetedAzureFetch(admin)(ai.endpoint + '/openai/v1/chat/completions', {method:'POST', headers:{'api-key':ai.apiKey,'Content-Type':'application/json'}, signal:AbortSignal.timeout(150000), redirect:'error', body:JSON.stringify({model:ai.deployment, temperature:0.65, max_completion_tokens:1100, store:false, messages:[
+        {role:'system',content:'You are the same Vedic palmistry palmist who wrote this saved reading. Answer the user’s specific follow-up using the original palm image and the saved observations/report. Re-check the visible lines, mounts, hand shape and fine details in the image before answering, then connect them to the traditional Hora Shastra/palmistry interpretation. Speak directly in the report voice; roast mode may be playful and sharp, but stay useful. Do not give generic financial, medical or legal advice. Do not mention prompts, models, image processing or that you are unable to see the image. Return only the answer text in the JSON schema.'},
+        {role:'user',content:[{type:'text',text:JSON.stringify({question,mode:reading.mode,mainFocus:reading.main_focus,savedReading:JSON.parse(reading.reading_text)})},...images]}
+      ], response_format:{type:'json_schema',json_schema:{name:'followup_answer',strict:true,schema:{type:'object',properties:{answer:{type:'string'}},required:['answer'],additionalProperties:false}}}})});
+    } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(502,'The follow-up service could not be reached. Please try again.'); }
+    if (!response.ok) throw new HttpError(response.status===429?429:response.status===401||response.status===403||response.status===404?503:502, response.status===429?'The reading service is busy. Please try again shortly.':'The follow-up service could not complete this question.');
+    const body:any = await response.json().catch(()=>null);
+    let answer:string; try { answer = JSON.parse(body?.choices?.[0]?.message?.content)?.answer; } catch { answer=''; }
+    if (!answer) throw new HttpError(502,'The follow-up answer was incomplete. Please try again.');
+    const {data:allowance,error:allowanceError} = await admin.rpc('consume_reading_followup',{p_reading_id:readingId,p_user_id:uid});
+    if (allowanceError) throw new HttpError(402,'Your three included follow-up questions are used. Add 5 more questions for ₹10.');
+    const result = Array.isArray(allowance) ? allowance[0] : allowance;
+    res.json({answer,freeRemaining:Number(result?.free_remaining || 0),paidRemaining:Number(result?.paid_remaining || 0),usedPaid:Boolean(result?.used_paid)});
   }));
   app.post('/api/create-order', wrap(async (req,res) => {
     const plan = getPlan(req.body?.plan);

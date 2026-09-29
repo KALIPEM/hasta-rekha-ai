@@ -1,7 +1,7 @@
 import {supabase} from './supabase-client';
 import type {Reading} from '../types';
 function client() {if(!supabase)throw new Error('The Supabase connection is not configured.');return supabase;}
-export function fromRow(row:any):Reading {return {id:row.id,userId:row.user_id,title:row.title,readingText:row.reading_text,createdAt:Date.parse(row.created_at),mode:row.mode,mainFocus:row.main_focus};}
+export function fromRow(row:any):Reading {return {id:row.id,userId:row.user_id,title:row.title,readingText:row.reading_text,createdAt:Date.parse(row.created_at),mode:row.mode,mainFocus:row.main_focus,followupQuestionsUsed:row.followup_questions_used ?? 0};}
 export function subscribeReadings(userId:string|undefined,onData:(r:Reading[])=>void,onError:(e:Error)=>void) {
   let active=true;
   async function update() {
