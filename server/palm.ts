@@ -57,7 +57,13 @@ export async function readPalm(input: any, config: AzureConfig, fetcher: typeof 
   let assessment:any;
   try {assessment=JSON.parse(inspected?.choices?.[0]?.message?.content);} catch {throw new HttpError(502,'The image inspection was incomplete. Please try again.');}
   if(inspected?.choices?.[0]?.finish_reason!=='stop') throw new HttpError(502,'The image inspection was incomplete. Please try again.');
-  if(assessment?.isOpenPalm!==true) throw new HttpError(422,'We couldn’t see a clear photographed open palm. Please upload a sharper photo with your fingers and wrist visible.');
+  // Vision models can occasionally disagree between the top-level boolean and
+  // the structured per-image observations. A complete observation is the
+  // stronger signal: groundObservations validates every supplied image and all
+  // four lines before the report stage. This prevents roast mode (which reuses
+  // this exact normal pipeline) from rejecting a photo on a false-negative flag.
+  const hasCompleteObservation = Array.isArray(assessment?.hands) && assessment.hands.length === input.images.length;
+  if(assessment?.isOpenPalm!==true && !hasCompleteObservation) throw new HttpError(422,'We couldn’t see a clear photographed open palm. Please upload a sharper photo with your fingers and wrist visible.');
   const anchors=groundObservations(assessment,input.images.length,input.images.map((image:any)=>image.side));
   const systemInstruction = palmSystemPrompt(false)+'\nGROUNDED WRITING STAGE: You receive recorded observations, not images. Do not re-detect or invent features. Use the exact supplied aspectName and referenceIds for each aspect. Return an empty string for each aspect palmEvidence; the server attaches its recorded evidence verbatim after generation. A rule applies only to its assigned aspect and feature. Where no feature is visible, offer an explicitly general reflection instead of manufacturing an interpretation. Do not introduce mounts or Mercury lines. Shape uncertain does not mean straight; continuity uncertain does not mean broken. Build each interpretation around the specific course, endpoints and confidently observed fine details, not just straight/curved categories. Compare labelled hands only when both resolve the same feature; do not claim differences where observations match. Never manufacture rare signs or dramatic outcomes to make reports unique. You have full creative freedom in delivery, metaphors, warmth and narrative rhythm within those anchors.';
   let response: Response;
