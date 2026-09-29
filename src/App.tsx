@@ -38,7 +38,7 @@ function AppContent() {
         <button className="wordmark" onClick={() => setView('home')} aria-label="Hasta Rekha home"><span className="brand-symbol"><Hand size={25} strokeWidth={1.3}/><Sparkles size={10}/></span><span>hasta rekha<span className="brand-subtitle">THE WISDOM WITHIN</span></span></button>
         <nav className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Main navigation">
           <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Discover</button>
-          <button onClick={learn}>How it works</button><button onClick={()=>setPricingOpen(true)}>Pricing</button>
+          <button onClick={learn}>How it works</button><button onClick={() => { if (!user) { setAuthOpen(true); return; } setPricingOpen(true); }}>Pricing</button>
           <button className={view === 'history' ? 'active' : ''} onClick={history}>My readings</button>
         </nav>
         <div className="header-actions">
@@ -54,7 +54,7 @@ function AppContent() {
     </header>
     <main id="main">
       {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>}
-      {view === 'home' && <LandingPage onStart={start} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
+      {view === 'home' && <LandingPage onStart={start} onSample={() => { if (!user) { setAuthOpen(true); return; } openReading(sampleReading); }} onPricing={() => { if (!user) { setAuthOpen(true); return; } setPricingOpen(true); }}/>}
       {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={() => openReading(sampleReading)}/>}
       {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => setView('home')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
       {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => setView(reading.isSample ? 'home' : 'history')} onStart={() => start()} onPricing={() => setPricingOpen(true)} onUpdateTitle={title => setReading({ ...reading, title })}/>}
