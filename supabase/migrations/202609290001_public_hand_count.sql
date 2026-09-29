@@ -4,6 +4,10 @@ alter table public.readings
   add column if not exists hands_read integer not null default 1
   check (hands_read between 1 and 4);
 
+update public.readings
+  set hands_read = 2
+  where main_focus = 'Couple compatibility' and hands_read = 1;
+
 drop function if exists public.save_paid_palm_reading(uuid,uuid,text,text,text,text);
 create function public.save_paid_palm_reading(
   p_id uuid,
