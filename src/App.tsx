@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Hand, Heart, Menu, Sparkles, X, LogOut } from 'lucide-react';
+import { ArrowRight, BookOpen, Hand, Heart, Menu, Sparkles, X, LogOut, UserCircle, Plus } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
@@ -41,7 +41,7 @@ function AppContent() {
   function closeAuth() { setAuthOpen(false); if (!user && pendingView) { setPendingView(null); navigate(route === 'app' ? '/app' : '/'); } }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="site-header">
+    {!authOpen && route === 'landing' && <header className="site-header">
       <div className="header-inner">
         <button className="wordmark" onClick={() => navigate('/')} aria-label="Hasta Rekha home"><span className="brand-symbol"><Hand size={25} strokeWidth={1.3}/><Sparkles size={10}/></span><span>hasta rekha<span className="brand-subtitle">THE WISDOM WITHIN</span></span></button>
         <nav className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Main navigation">
@@ -59,12 +59,12 @@ function AppContent() {
         <button aria-current={view === 'scan' ? 'page' : undefined} onClick={() => start()}><Hand size={17}/> New reading</button>
         <button aria-current={view === 'history' || view === 'reading' && !reading.isSample ? 'page' : undefined} onClick={() => { setMenuOpen(false); history(); }}><BookOpen size={17}/> My readings</button>
       </nav>
-    </header>
+    </header>}
+    {!authOpen && route === 'app' && <PortalHeader onPricing={() => setPricingOpen(true)} onSignOut={() => supabase?.auth.signOut()} />}
     <main id="main">
       {authOpen ? <AuthScreen fullPage onBack={closeAuth}/> : <>
       {route === 'landing' && <LandingPage onStart={start} onSample={showSample} onPricing={openPricing}/>} 
       {route === 'app' && <>
-        {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>} 
         {!user && <section className="app-gate section-width"><div className="eyebrow">YOUR READING WORKSPACE</div><h1>Sign in to see your readings.</h1><p>Your saved reports, new palm readings, credits, and follow-up questions all live here.</p><button className="button button-brand" onClick={() => setAuthOpen(true)}>Sign in to continue <ArrowRight size={16}/></button></section>}
         {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={showSample}/>} 
         {view === 'mode' && user && <ReadingModePage onBack={() => navigate('/app', 'history')} onSelect={kind => { setReadingKind(kind); setView('scan'); }}/>} 
@@ -73,9 +73,23 @@ function AppContent() {
       </>}
       </>}
     </main>
-    <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => navigate('/')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
+    {route === 'landing' && !authOpen && <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => navigate('/')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>}
     {pricingOpen && <PricingModal key={user?.id || "guest"} onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); if(view!=='scan') start(); }}/>} 
   </div>;
+}
+function PortalHeader({onPricing, onSignOut}: {onPricing: () => void; onSignOut: () => void}) {
+  const {user} = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  return <header className="portal-header">
+    <div className="portal-header-inner">
+      <div className="portal-brand"><span className="portal-brand-mark"><Hand size={20} strokeWidth={1.4}/></span><span><strong>hasta rekha</strong><small>MY READINGS</small></span></div>
+      <div className="portal-actions">
+        <CreditBalanceBar onPricing={onPricing} compact />
+        <button className="portal-add-credits" onClick={onPricing} aria-label="Buy more credits" title="Buy more credits"><Plus size={19}/></button>
+        <div className="portal-profile-wrap"><button className="portal-profile" onClick={() => setProfileOpen(open => !open)} aria-label="Open profile menu" aria-expanded={profileOpen}><UserCircle size={27}/></button>{profileOpen && <div className="portal-profile-menu"><span>{user?.email || 'Your account'}</span><button onClick={onSignOut}><LogOut size={15}/> Sign out</button></div>}</div>
+      </div>
+    </div>
+  </header>;
 }
 function ReadingModePage({onBack, onSelect}: {onBack: () => void; onSelect: (kind: 'individual' | 'couple') => void}) {
   return <section className="reading-mode-page section-width">

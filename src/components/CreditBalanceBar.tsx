@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {useAuth} from './AuthContext';
 import {apiRequest} from '../lib/gemini-utils';
 import type {CreditBalance} from '../lib/credits';
-export function CreditBalanceBar({onPricing}:{onPricing:()=>void}) {
+export function CreditBalanceBar({onPricing, compact = false}:{onPricing:()=>void; compact?: boolean}) {
   const {user}=useAuth();
   const [balance,setBalance]=useState<CreditBalance|null>(null);
   const [error,setError]=useState(false),[version,setVersion]=useState(0);
@@ -18,6 +18,7 @@ export function CreditBalanceBar({onPricing}:{onPricing:()=>void}) {
     return()=>{active=false;};
   },[user?.id,version]);
   if(!user)return null;
+  if (compact) return <div className="portal-credit-balance" aria-label="Reading credits" aria-live="polite"><span className="portal-credit-label">Credits</span><strong>{error?'—':balance?balance.credits:'…'}</strong><span className="portal-credit-detail">{balance?`${balance.coupleCredits} match · ${balance.questionCredits} follow-up`:''}</span></div>;
   return <aside className="credits-bar section-width" aria-label="Reading credits">
     <div aria-live="polite"><strong>Your credits</strong><span>{error?'Balance unavailable':balance?`${balance.credits} individual · ${balance.coupleCredits} couple`:'Loading balance…'}</span>{balance&&balance.credits===0&&balance.coupleCredits===0&&<small>Purchase a pack before generating a reading.</small>}</div>
     <div><button className="button button-outline" onClick={onPricing}>{balance?.pendingOrderId?'Credits & check payment':'Buy credits & purchases'}</button><button className="text-button" onClick={()=>setVersion(v=>v+1)}>Refresh balance</button></div>
