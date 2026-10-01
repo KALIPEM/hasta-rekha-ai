@@ -2105,3 +2105,49 @@ details>p{
 .hands-read-note strong{font-family:var(--font-serif);font-size:19px;line-height:1;color:#404a38}
 .hands-read-note small{color:#7b7a6b;font-size:7px;letter-spacing:.2px;white-space:nowrap}
 @media(max-width:700px){.art-note{right:-3px;max-width:calc(100% - 8px);padding:10px 12px;gap:8px}.hands-read-note{right:-2px;top:30px;padding:9px 12px}.hands-read-note strong{font-size:15px}.hands-read-note small{font-size:6px}}
+
+/* Clear reading mode: larger controls and plain-language guidance for easier reading. */
+body{font-size:16px}
+p{font-size:15px;line-height:1.7}
+.eyebrow{font-size:11px;letter-spacing:1.45px}
+.nav-links button,.text-button{font-size:14px}
+.button{font-size:14px;min-height:52px;padding:15px 22px;gap:10px}
+.header-cta{min-height:46px;padding:12px 18px}
+.sample-link{font-size:14px}
+.back-link{font-size:14px}
+.hero-description{font-size:16px;line-height:1.7}
+.hero-assurances{font-size:12px}
+.task-instruction{display:flex;flex-direction:column;gap:5px;margin-bottom:22px;padding:16px 18px;border-left:4px solid #9b5038;background:#f3eadf;border-radius:4px;color:#4d5548}
+.task-instruction strong{font-family:var(--font-serif);font-size:22px;font-weight:600;color:#394035}
+.task-instruction span{font-size:14px;line-height:1.55;color:#66705e}
+.scanner-heading p,.library-heading p{font-size:16px;line-height:1.6}
+.wizard-steps li{font-size:13px}
+.wizard-steps li>span{width:30px;height:30px;font-size:12px}
+.field,.choice-field legend{font-size:15px}
+.field input,.field select,.title-editor input{font-size:16px;min-height:50px;padding:13px 14px}
+.radio-card{font-size:14px;padding:13px 15px;min-height:46px}
+.form-disclaimer,.notice,.form-error{font-size:14px;line-height:1.65}
+.photo-guide-intro{font-size:14px;line-height:1.6}
+.photo-tips li{font-size:14px;line-height:1.5}
+.reading-mode-option small{font-size:13px}
+.reading-mode-option strong{font-size:23px}
+.reading-mode-icon{width:50px;height:50px}
+.library-tools .filter-tabs button{font-size:14px}
+.search-field input{font-size:15px;min-height:48px}
+.faq summary{font-size:15px}
+.faq details>p{font-size:15px;line-height:1.7}
+@media(max-width:640px){
+  .hero-description{font-size:15px}
+  .hero-assurances{font-size:11px}
+  .nav-links button{font-size:15px}
+  .mobile-reading-nav button{font-size:14px}
+  .eyebrow{font-size:10px;letter-spacing:1.25px}
+  .task-instruction strong{font-size:20px}
+  .task-instruction span{font-size:14px}
+  .scanner-heading p,.library-heading p{font-size:15px}
+  .wizard-steps{gap:10px}
+  .wizard-steps li{font-size:11px}
+  .field,.choice-field legend{font-size:15px}
+  .radio-card{font-size:14px}
+  .form-actions>.button{font-size:14px;padding-inline:16px}
+}

@@ -18,8 +18,8 @@ export function LandingPage({ onStart, onSample, onPricing }: Props) {
       <div className="hero-copy">
         <div className="eyebrow"><span className="little-star">✧</span> ANCIENT WISDOM, A FRESH PERSPECTIVE</div>
         <h1>A little wisdom,<br/>in the <em>palm</em> of<br/>your hand.</h1>
-        <p className="hero-description">Your lines tell a story. Explore yours with the wisdom of Vedic palmistry and a little help from AI.</p>
-        <div className="hero-buttons"><button className="button button-brand" onClick={() => onStart()}>Discover my reading <ArrowRight size={18}/></button><button className="sample-link" onClick={onSample}><BookOpen size={17}/> View a sample</button></div>
+        <p className="hero-description">Take a clear photo of your open palm and get a personal reading based on Vedic palmistry.</p>
+        <div className="hero-buttons"><button className="button button-brand" onClick={() => onStart()}>Start my palm reading <ArrowRight size={18}/></button><button className="sample-link" onClick={onSample}><BookOpen size={17}/> See an example</button></div>
         <div className="hero-assurances"><span><Check size={14}/> Private account library</span><span><ShieldCheck size={14}/> Your photo, your choice</span></div>
       </div>
       <div className="hero-art"><span className="art-caption top">EVERY HAND IS A DIFFERENT STORY</span><PalmIllustration/><span className="art-caption bottom">HASTA SAMUDRIKA · THE ART OF PALM READING</span><div className="art-note"><Sparkles size={16}/><span>Ancient art.<br/><strong>New possibilities.</strong></span></div><div className="art-note hands-read-note"><Hand size={16}/><span><strong>{handsRead === null ? '—' : handsRead.toLocaleString()}</strong><small>hands read so far</small></span></div></div>
