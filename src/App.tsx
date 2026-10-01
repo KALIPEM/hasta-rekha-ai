@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Hand, Menu, Sparkles, X, LogOut } from 'lucide-react';
+import { ArrowRight, BookOpen, Hand, Heart, Menu, Sparkles, X, LogOut } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
@@ -16,10 +16,11 @@ export interface ServiceStatus { aiConfigured: boolean; billingConfigured: boole
 function AppContent() {
   const { user } = useAuth();
   const [route, setRoute] = useState<'landing' | 'app'>(() => window.location.pathname.startsWith('/app') ? 'app' : 'landing');
-  const [view, setView] = useState<'home' | 'history' | 'scan' | 'reading'>(() => window.location.pathname.startsWith('/app') ? 'history' : 'home');
+  const [view, setView] = useState<'home' | 'history' | 'mode' | 'scan' | 'reading'>(() => window.location.pathname.startsWith('/app') ? 'history' : 'home');
   const [reading, setReading] = useState<Reading>(sampleReading);
   const [authOpen, setAuthOpen] = useState(false);
-  const [pendingView, setPendingView] = useState<'scan' | 'history' | 'reading' | null>(null);
+  const [pendingView, setPendingView] = useState<'mode' | 'scan' | 'history' | 'reading' | null>(null);
+  const [readingKind, setReadingKind] = useState<'individual' | 'couple'>('individual');
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [roast, setRoast] = useState(false);
@@ -28,14 +29,16 @@ function AppContent() {
   useEffect(() => { const onPopState = () => { const nextRoute = window.location.pathname.startsWith('/app') ? 'app' : 'landing'; setRoute(nextRoute); setView(nextRoute === 'app' ? 'history' : 'home'); }; window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState); }, []);
   useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [route, view]);
   useEffect(() => { if (user && pendingView) { setView(pendingView); setPendingView(null); setAuthOpen(false); } }, [user, pendingView]);
-  useEffect(() => { if (!user && route === 'app' && (view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('history'); setReading(sampleReading); } }, [user, route, view, reading.isSample]);
-  function navigate(path: '/' | '/app', nextView: 'home' | 'history' | 'scan' | 'reading' = path === '/app' ? 'history' : 'home') { if (window.location.pathname !== path) window.history.pushState({}, '', path); setRoute(path === '/app' ? 'app' : 'landing'); setView(nextView); setMenuOpen(false); }
-  function start(roastMode = false) { setRoast(roastMode); navigate('/app', 'scan'); if (!user) { setPendingView('scan'); setAuthOpen(true); } }
+  useEffect(() => { if (user && route === 'landing') navigate('/app', 'history'); }, [user]);
+  useEffect(() => { if (!user && route === 'app' && (view === 'mode' || view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('history'); setReading(sampleReading); } }, [user, route, view, reading.isSample]);
+  function navigate(path: '/' | '/app', nextView: 'home' | 'history' | 'mode' | 'scan' | 'reading' = path === '/app' ? 'history' : 'home') { if (window.location.pathname !== path) window.history.pushState({}, '', path); setRoute(path === '/app' ? 'app' : 'landing'); setView(nextView); setMenuOpen(false); }
+  function start(roastMode = false) { setRoast(roastMode); navigate('/app', 'mode'); if (!user) { setPendingView('mode'); setAuthOpen(true); } }
   function history() { navigate('/app', 'history'); if (!user) { setPendingView('history'); setAuthOpen(true); } }
   function openReading(r: Reading) { if (!r.isSample) window.dispatchEvent(new Event('credits-changed')); navigate('/app', 'reading'); setReading(r); }
   function showSample() { navigate('/app', 'reading'); setReading(sampleReading); if (!user) { setPendingView('reading'); setAuthOpen(true); } }
   function learn() { navigate('/'); requestAnimationFrame(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })); }
-  function openPricing() { navigate('/app'); if (!user) setAuthOpen(true); else setPricingOpen(true); }
+  function openPricing() { setPricingOpen(true); }
+  function closeAuth() { setAuthOpen(false); if (!user && pendingView) { setPendingView(null); navigate(route === 'app' ? '/app' : '/'); } }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="site-header">
@@ -58,18 +61,30 @@ function AppContent() {
       </nav>
     </header>
     <main id="main">
+      {authOpen ? <AuthScreen fullPage onBack={closeAuth}/> : <>
       {route === 'landing' && <LandingPage onStart={start} onSample={showSample} onPricing={openPricing}/>} 
       {route === 'app' && <>
         {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>} 
         {!user && <section className="app-gate section-width"><div className="eyebrow">YOUR READING WORKSPACE</div><h1>Sign in to see your readings.</h1><p>Your saved reports, new palm readings, credits, and follow-up questions all live here.</p><button className="button button-brand" onClick={() => setAuthOpen(true)}>Sign in to continue <ArrowRight size={16}/></button></section>}
         {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={showSample}/>} 
-        {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => navigate('/app')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={showSample} onPricing={openPricing}/>} 
+        {view === 'mode' && user && <ReadingModePage onBack={() => navigate('/app', 'history')} onSelect={kind => { setReadingKind(kind); setView('scan'); }}/>} 
+        {view === 'scan' && user && <Scanner key={String(roast)} readingKind={readingKind} onCancel={() => navigate('/app')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={showSample} onPricing={openPricing}/>} 
         {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => navigate('/app', reading.isSample ? 'history' : 'history')} onStart={() => start()} onPricing={openPricing} onUpdateTitle={title => setReading({ ...reading, title })}/>} 
+      </>}
       </>}
     </main>
     <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => navigate('/')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
-    {authOpen && <AuthScreen onBack={() => { setAuthOpen(false); if (!user) { setPendingView(null); navigate('/app'); } }}/>} 
-    {pricingOpen && <PricingModal key={user?.id || "guest"} onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); if(view!=='scan') start(); }}/>}
+    {pricingOpen && <PricingModal key={user?.id || "guest"} onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); if(view!=='scan') start(); }}/>} 
   </div>;
+}
+function ReadingModePage({onBack, onSelect}: {onBack: () => void; onSelect: (kind: 'individual' | 'couple') => void}) {
+  return <section className="reading-mode-page section-width">
+    <button className="back-link" onClick={onBack}>← Back to my readings</button>
+    <div className="eyebrow">NEW READING</div><h1>What would you like to read?</h1><p>Choose one option to continue.</p>
+    <div className="reading-mode-page-grid">
+      <button className="reading-mode-page-card" onClick={() => onSelect('individual')}><span className="reading-mode-icon"><Hand size={24}/></span><span><strong>Individual reading</strong><small>Read one person’s palm · ₹20 · 3 follow-up questions</small></span><ArrowRight size={19}/></button>
+      <button className="reading-mode-page-card" onClick={() => onSelect('couple')}><span className="reading-mode-icon"><Heart size={23}/></span><span><strong>Match checking</strong><small>Compare two palms · ₹30 · 3 follow-up questions</small></span><ArrowRight size={19}/></button>
+    </div>
+  </section>;
 }
 export default function App() { return <AuthProvider><AppContent/></AuthProvider>; }
