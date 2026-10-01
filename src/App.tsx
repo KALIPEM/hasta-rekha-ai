@@ -15,30 +15,35 @@ import type { Reading } from './types';
 export interface ServiceStatus { aiConfigured: boolean; billingConfigured: boolean }
 function AppContent() {
   const { user } = useAuth();
-  const [view, setView] = useState<'home' | 'history' | 'scan' | 'reading'>('home');
+  const [route, setRoute] = useState<'landing' | 'app'>(() => window.location.pathname.startsWith('/app') ? 'app' : 'landing');
+  const [view, setView] = useState<'home' | 'history' | 'scan' | 'reading'>(() => window.location.pathname.startsWith('/app') ? 'history' : 'home');
   const [reading, setReading] = useState<Reading>(sampleReading);
   const [authOpen, setAuthOpen] = useState(false);
-  const [pendingView, setPendingView] = useState<'scan' | 'history' | null>(null);
+  const [pendingView, setPendingView] = useState<'scan' | 'history' | 'reading' | null>(null);
   const [pricingOpen, setPricingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [roast, setRoast] = useState(false);
   const [status, setStatus] = useState<ServiceStatus>({ aiConfigured: false, billingConfigured: false });
   useEffect(() => { apiRequest('/api/config').then(setStatus).catch(() => {}); }, []);
-  useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [view]);
+  useEffect(() => { const onPopState = () => { const nextRoute = window.location.pathname.startsWith('/app') ? 'app' : 'landing'; setRoute(nextRoute); setView(nextRoute === 'app' ? 'history' : 'home'); }; window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState); }, []);
+  useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [route, view]);
   useEffect(() => { if (user && pendingView) { setView(pendingView); setPendingView(null); setAuthOpen(false); } }, [user, pendingView]);
-  useEffect(() => { if (!user && (view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('home'); setReading(sampleReading); } }, [user, view, reading.isSample]);
-  function start(roastMode = false) { setRoast(roastMode); if (!user) { setPendingView('scan'); setAuthOpen(true); } else setView('scan'); }
-  function history() { if (!user) { setPendingView('history'); setAuthOpen(true); } else setView('history'); }
-  function openReading(r: Reading) { if (!r.isSample) window.dispatchEvent(new Event('credits-changed')); setReading(r); setView('reading'); }
-  function learn() { setView('home'); setMenuOpen(false); requestAnimationFrame(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })); }
+  useEffect(() => { if (!user && route === 'app' && (view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('history'); setReading(sampleReading); } }, [user, route, view, reading.isSample]);
+  function navigate(path: '/' | '/app', nextView: 'home' | 'history' | 'scan' | 'reading' = path === '/app' ? 'history' : 'home') { if (window.location.pathname !== path) window.history.pushState({}, '', path); setRoute(path === '/app' ? 'app' : 'landing'); setView(nextView); setMenuOpen(false); }
+  function start(roastMode = false) { setRoast(roastMode); navigate('/app', 'scan'); if (!user) { setPendingView('scan'); setAuthOpen(true); } }
+  function history() { navigate('/app', 'history'); if (!user) { setPendingView('history'); setAuthOpen(true); } }
+  function openReading(r: Reading) { if (!r.isSample) window.dispatchEvent(new Event('credits-changed')); navigate('/app', 'reading'); setReading(r); }
+  function showSample() { navigate('/app', 'reading'); setReading(sampleReading); if (!user) { setPendingView('reading'); setAuthOpen(true); } }
+  function learn() { navigate('/'); requestAnimationFrame(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })); }
+  function openPricing() { navigate('/app'); if (!user) setAuthOpen(true); else setPricingOpen(true); }
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="site-header">
       <div className="header-inner">
-        <button className="wordmark" onClick={() => setView('home')} aria-label="Hasta Rekha home"><span className="brand-symbol"><Hand size={25} strokeWidth={1.3}/><Sparkles size={10}/></span><span>hasta rekha<span className="brand-subtitle">THE WISDOM WITHIN</span></span></button>
+        <button className="wordmark" onClick={() => navigate('/')} aria-label="Hasta Rekha home"><span className="brand-symbol"><Hand size={25} strokeWidth={1.3}/><Sparkles size={10}/></span><span>hasta rekha<span className="brand-subtitle">THE WISDOM WITHIN</span></span></button>
         <nav className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Main navigation">
-          <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Discover</button>
-          <button onClick={learn}>How it works</button><button onClick={() => { if (!user) { setAuthOpen(true); return; } setPricingOpen(true); }}>Pricing</button>
+          <button className={route === 'landing' ? 'active' : ''} onClick={() => navigate('/')}>Discover</button>
+          <button onClick={learn}>How it works</button><button onClick={openPricing}>Pricing</button>
           <button className={view === 'history' ? 'active' : ''} onClick={history}>My readings</button>
         </nav>
         <div className="header-actions">
@@ -53,14 +58,17 @@ function AppContent() {
       </nav>
     </header>
     <main id="main">
-      {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>}
-      {view === 'home' && <LandingPage onStart={start} onSample={() => { if (!user) { setAuthOpen(true); return; } openReading(sampleReading); }} onPricing={() => { if (!user) { setAuthOpen(true); return; } setPricingOpen(true); }}/>}
-      {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={() => openReading(sampleReading)}/>}
-      {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => setView('home')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={() => openReading(sampleReading)} onPricing={() => setPricingOpen(true)}/>}
-      {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => setView(reading.isSample ? 'home' : 'history')} onStart={() => start()} onPricing={() => setPricingOpen(true)} onUpdateTitle={title => setReading({ ...reading, title })}/>}
+      {route === 'landing' && <LandingPage onStart={start} onSample={showSample} onPricing={openPricing}/>} 
+      {route === 'app' && <>
+        {user && status.billingConfigured && <CreditBalanceBar key={user.id} onPricing={() => setPricingOpen(true)}/>} 
+        {!user && <section className="app-gate section-width"><div className="eyebrow">YOUR READING WORKSPACE</div><h1>Sign in to see your readings.</h1><p>Your saved reports, new palm readings, credits, and follow-up questions all live here.</p><button className="button button-brand" onClick={() => setAuthOpen(true)}>Sign in to continue <ArrowRight size={16}/></button></section>}
+        {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={showSample}/>} 
+        {view === 'scan' && user && <Scanner key={String(roast)} onCancel={() => navigate('/app')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={showSample} onPricing={openPricing}/>} 
+        {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => navigate('/app', reading.isSample ? 'history' : 'history')} onStart={() => start()} onPricing={openPricing} onUpdateTitle={title => setReading({ ...reading, title })}/>} 
+      </>}
     </main>
-    <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => setView('home')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
-    {authOpen && <AuthScreen onBack={() => { setAuthOpen(false); if (!user) setPendingView(null); }}/>}
+    <footer className="site-footer"><div className="footer-inner"><button className="footer-brand" onClick={() => navigate('/')}>hasta rekha <span>✧</span></button><p>A moment of curiosity. A little more self-discovery.</p><span className="footer-note">For reflection & entertainment.</span></div></footer>
+    {authOpen && <AuthScreen onBack={() => { setAuthOpen(false); if (!user) { setPendingView(null); navigate('/app'); } }}/>} 
     {pricingOpen && <PricingModal key={user?.id || "guest"} onClose={() => setPricingOpen(false)} status={status} onSignIn={() => { setPricingOpen(false); setAuthOpen(true); }} onStart={() => { setPricingOpen(false); if(view!=='scan') start(); }}/>}
   </div>;
 }
