@@ -34,7 +34,7 @@ export function validateInput(body: any) {
     if (!(image.mimeType === 'image/jpeg' && jpeg || image.mimeType === 'image/png' && png || image.mimeType === 'image/webp' && webp)) throw new HttpError(400, 'This file does not match its image type.');
   }
   const hands = ['Right-handed','Left-handed','Ambidextrous'];
-  const ages = ['18–24','25–34','35–44','45–54','55–64','65+'];
+  const ages = ['11–17 (teen)','18–24','25–34','35–44','45–54','55–64','65+'];
   const focuses = ['Overall life path','Personality & purpose','Career & growth','Love & connection','Everyday balance'];
   if (!hands.includes(body.dominantHand) || !ages.includes(body.ageRange) || !focuses.includes(body.mainFocus) || typeof body.isRoastMode !== 'boolean') throw new HttpError(400, 'Choose valid reading preferences.');
   if (body.title !== undefined && (typeof body.title !== 'string' || body.title.length > 100)) throw new HttpError(400, 'Use a title of up to 100 characters.');
