@@ -75,7 +75,7 @@ function IndividualScanner({ onCancel, onScanComplete, initialRoast, status, onS
     void generate();
   }
   return <section className="scanner-page section-width">
-    <button className="back-link" onClick={() => { request.current?.abort(); onCancel(); }}><ArrowLeft size={16}/>{busy ? 'Cancel reading' : 'Back to discover'}</button>
+    <button className="back-link" onClick={() => { request.current?.abort(); onCancel(); }}><ArrowLeft size={16}/>{busy ? 'Cancel reading' : 'Back to Hasta Rekha'}</button>
     <div className="scanner-heading"><div className="eyebrow">A MOMENT FOR YOU</div><h1>{step === 1 ? 'Let’s see your palm.' : step === 2 ? 'Make this reading yours.' : 'Your story is taking shape.'}</h1><p>{step === 1 ? 'We recommend one clear photo of each palm for more context. The second photo is optional; one palm is enough to continue.' : step === 2 ? 'A little context helps us choose a more meaningful perspective.' : 'We’re exploring the visible lines through a Vedic lens.'}</p></div>
     <ol className="wizard-steps">{['Your photo', 'Your perspective', 'Your reading'].map((label, i) => <li key={label} className={step === i+1 ? 'current' : step > i+1 ? 'complete' : ''} aria-current={step === i+1 ? 'step' : undefined}><span>{step > i+1 ? <Check size={13}/> : i+1}</span>{label}</li>)}</ol>
     {step === 1 && <div className="scanner-grid"><div className="upload-panel"><div className="task-instruction"><strong>Step 1: Add a clear palm photo</strong><span>One hand is enough. Add both hands if you want more detail.</span></div>

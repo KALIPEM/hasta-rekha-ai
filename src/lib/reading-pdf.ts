@@ -18,7 +18,7 @@ export function createPrintableReading(source:HTMLElement,title:string):HTMLElem
   });
   const root=document.createElement('div');root.className='reading-pdf-root';
   const brand=document.createElement('header');brand.className='pdf-brand';
-  const home=document.createElement('a');home.href=PUBLIC_APP_URL;home.textContent='hasta rekha';
+  const home=document.createElement('a');home.href=PUBLIC_APP_URL;home.textContent='Hasta Rekha';
   const subtitle=document.createElement('span');subtitle.textContent='THE WISDOM WITHIN';
   brand.append(home,subtitle);
   const footer=document.createElement('footer');footer.className='pdf-backlink';

@@ -61,7 +61,7 @@ export function ReadingView({ reading, onBack, onStart, onPricing, onUpdateTitle
     finally {setReviewBusy(false);}
   }
   return <article ref={reportRef} className={isCouple?'report-page section-width couple-report-page':'report-page section-width'}>
-    <div className="report-toolbar"><button className="back-link" onClick={onBack}><ArrowLeft size={16}/>{reading.isSample ? 'Back to discover' : 'My readings'}</button><div><a className="button button-outline button-small" href="#share-lines"><Share2 size={15}/><span>Share a line</span></a><button className="button button-outline button-small" aria-label="Download report as PDF" disabled={pdfBusy} onClick={()=>void download()}><Download size={15}/><span>{pdfBusy?'Preparing PDF…':'Download PDF'}</span></button></div></div>
+    <div className="report-toolbar"><button className="back-link" onClick={onBack}><ArrowLeft size={16}/>Back to Hasta Rekha</button><div><a className="button button-outline button-small" href="#share-lines"><Share2 size={15}/><span>Share a line</span></a><button className="button button-outline button-small" aria-label="Download report as PDF" disabled={pdfBusy} onClick={()=>void download()}><Download size={15}/><span>{pdfBusy?'Preparing PDF…':'Download PDF'}</span></button></div></div>
     {reading.isSample && <div className="sample-notice"><Eye size={18}/><span>You’re exploring an illustrative sample. No photo has been analyzed.</span><button className="inline-link" onClick={onStart}>Get your own reading <ArrowRight size={14}/></button></div>}
     {reading.storageWarning && <p className="notice" role="alert">{reading.storageWarning}</p>}
     {notice && <p className="notice" role="status">{notice}</p>}
