@@ -3,6 +3,7 @@ import {ArrowRight, Check, Sparkles} from 'lucide-react';
 import {Modal} from './Modal';
 import {useAuth} from './AuthContext';
 import {apiRequest} from '../lib/gemini-utils';
+import {trackAnalyticsEvent} from '../lib/analytics';
 import type {ServiceStatus} from '../App';
 let checkoutScript: Promise<void> | undefined;
 function loadCheckout() {
@@ -25,10 +26,11 @@ export function PricingModal({onClose,status,onSignIn,onStart}:Props) {
   const [pending,setPending] = useState('');
   const [coupleBalance,setCoupleBalance]=useState(0), [questionBalance,setQuestionBalance]=useState(0);
   useEffect(() => {if(user && status.billingConfigured) apiRequest('/api/credits').then(d=>{setPurchases(d.purchases||[]);setBalance(d.credits);setCoupleBalance(d.coupleCredits||0);setQuestionBalance(d.questionCredits||0);setPending(d.pendingOrderId||'');}).catch(()=>setError('Your balance is unavailable. Please try again.'));},[user?.id,status.billingConfigured]);
-  function completed(data:any) {window.dispatchEvent(new Event('credits-changed'));setSuccess(true);void apiRequest('/api/credits').then(d=>{setPurchases(d.purchases||[]);setBalance(d.credits);setCoupleBalance(d.coupleCredits||0);setQuestionBalance(d.questionCredits||0);}).catch(()=>setError('Payment confirmed; refresh to see your balance.'));setBalance(data.credits);setPending('');setBusy('');setError('');}
+  const planDetails: Record<string, {name:string; value:number}> = {deepdive:{name:'Individual reading',value:20}, couple:{name:'Match checking',value:30}, mystic:{name:'Family pack',value:80}, questions:{name:'5 follow-up questions',value:10}};
+  function completed(data:any, plan?:string, transactionId?:string) {window.dispatchEvent(new Event('credits-changed'));setSuccess(true);void apiRequest('/api/credits').then(d=>{setPurchases(d.purchases||[]);setBalance(d.credits);setCoupleBalance(d.coupleCredits||0);setQuestionBalance(d.questionCredits||0);}).catch(()=>setError('Payment confirmed; refresh to see your balance.'));setBalance(data.credits);setPending('');setBusy('');setError('');const details=plan&&planDetails[plan];if(details&&transactionId)trackAnalyticsEvent('purchase',{transaction_id:transactionId,value:details.value,currency:'INR',items:[{item_id:plan,item_name:details.name,price:details.value,quantity:1}]});}
   async function checkPayment(orderId=pending) {
     setBusy('check');setError('');
-    try {const data=await apiRequest('/api/check-payment',{orderId});if(data.success)completed(data);else setError('No completed payment yet. If you paid, wait a moment and check again.');}
+    try {const data=await apiRequest('/api/check-payment',{orderId});if(data.success){const order=purchases.find(item=>item.id===orderId);completed(data,order?.plan,orderId);}else setError('No completed payment yet. If you paid, wait a moment and check again.');}
     catch(e:any){setError(e.message);}finally{setBusy('');}
   }
   async function checkout(plan:string) {
@@ -36,12 +38,13 @@ export function PricingModal({onClose,status,onSignIn,onStart}:Props) {
     setBusy(plan);setError('');
     try {
       await loadCheckout();
+      const details=planDetails[plan];trackAnalyticsEvent('begin_checkout',{currency:'INR',value:details.value,items:[{item_id:plan,item_name:details.name,price:details.value,quantity:1}]});
       const data=await apiRequest('/api/create-order',{plan});
       setPending(data.orderId);
       const popup=new (window as any).Razorpay({
         key:data.keyId,amount:data.amount,currency:data.currency,order_id:data.orderId,name:'Hasta Rekha',
         description:data.name,prefill:{email:user.email},theme:{color:'#9b5038'},
-        handler:async(response:any)=>{try{completed(await apiRequest('/api/verify-payment',response));}catch(e:any){setError(e.message);setBusy('');}},
+        handler:async(response:any)=>{try{completed(await apiRequest('/api/verify-payment',response),plan,response.razorpay_order_id || response.razorpay_payment_id);}catch(e:any){setError(e.message);setBusy('');}},
         modal:{ondismiss:()=>setBusy('')},
       });
       popup.on('payment.failed',()=>{setError('Payment did not complete. You can try again or check your payment status.');setBusy('');});

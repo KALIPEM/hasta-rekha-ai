@@ -11,6 +11,7 @@ import { PricingModal } from './components/PricingModal';
 import { sampleReading } from './lib/sample-reading';
 import { apiRequest } from './lib/gemini-utils';
 import { supabase } from './lib/supabase-client';
+import { initAnalytics, trackPageView } from './lib/analytics';
 import type { Reading } from './types';
 export interface ServiceStatus { aiConfigured: boolean; billingConfigured: boolean }
 function AppContent() {
@@ -25,9 +26,11 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [roast, setRoast] = useState(false);
   const [status, setStatus] = useState<ServiceStatus>({ aiConfigured: false, billingConfigured: false });
+  useEffect(() => { initAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID); }, []);
   useEffect(() => { apiRequest('/api/config').then(setStatus).catch(() => {}); }, []);
   useEffect(() => { const onPopState = () => { const nextRoute = window.location.pathname.startsWith('/app') ? 'app' : 'landing'; setRoute(nextRoute); setView(nextRoute === 'app' ? 'history' : 'home'); }; window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState); }, []);
   useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [route, view]);
+  useEffect(() => { trackPageView(route === 'landing' ? '/' : `/app#${view}`); }, [route, view]);
   useEffect(() => { if (user && pendingView) { setView(pendingView); setPendingView(null); setAuthOpen(false); } }, [user, pendingView]);
   useEffect(() => { if (!user && route === 'app' && (view === 'mode' || view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('history'); setReading(sampleReading); } }, [user, route, view, reading.isSample]);
   function navigate(path: '/' | '/app', nextView: 'home' | 'history' | 'mode' | 'scan' | 'reading' = path === '/app' ? 'history' : 'home') { if (window.location.pathname !== path) window.history.pushState({}, '', path); setRoute(path === '/app' ? 'app' : 'landing'); setView(nextView); setMenuOpen(false); }
