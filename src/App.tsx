@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Hand, Heart, Menu, Sparkles, X, LogOut, UserCircle, Plus } from 'lucide-react';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LandingPage } from './components/LandingPage';
@@ -26,11 +26,12 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [roast, setRoast] = useState(false);
   const [status, setStatus] = useState<ServiceStatus>({ aiConfigured: false, billingConfigured: false });
+  const initialPageViewSent = useRef(false);
   useEffect(() => { initAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-S150VF0HRN'); }, []);
   useEffect(() => { apiRequest('/api/config').then(setStatus).catch(() => {}); }, []);
   useEffect(() => { const onPopState = () => { const nextRoute = window.location.pathname.startsWith('/app') ? 'app' : 'landing'; setRoute(nextRoute); setView(nextRoute === 'app' ? 'history' : 'home'); }; window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState); }, []);
   useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [route, view]);
-  useEffect(() => { trackPageView(route === 'landing' ? '/' : `/app#${view}`); }, [route, view]);
+  useEffect(() => { if (initialPageViewSent.current) trackPageView(route === 'landing' ? '/' : `/app#${view}`); else initialPageViewSent.current = true; }, [route, view]);
   useEffect(() => { if (user && pendingView) { setView(pendingView); setPendingView(null); setAuthOpen(false); } }, [user, pendingView]);
   useEffect(() => { if (!user && route === 'app' && (view === 'mode' || view === 'scan' || view === 'history' || view === 'reading' && !reading.isSample)) { setView('history'); setReading(sampleReading); } }, [user, route, view, reading.isSample]);
   function navigate(path: '/' | '/app', nextView: 'home' | 'history' | 'mode' | 'scan' | 'reading' = path === '/app' ? 'history' : 'home') { if (window.location.pathname !== path) window.history.pushState({}, '', path); setRoute(path === '/app' ? 'app' : 'landing'); setView(nextView); setMenuOpen(false); }
