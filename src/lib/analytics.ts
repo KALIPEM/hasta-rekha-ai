@@ -1,4 +1,4 @@
-type AnalyticsParams = Record<string, string | number | boolean | undefined>;
+type AnalyticsParams = Record<string, unknown>;
 type Attribution = { source?: string; medium?: string; campaign?: string; term?: string; content?: string; landing_page?: string; captured_at?: string };
 
 const ATTRIBUTION_KEY = 'hasta_attribution';
@@ -52,4 +52,3 @@ export function trackAnalyticsEvent(name: string, params: AnalyticsParams = {}) 
 export function trackPageView(path = window.location.pathname) {
   trackAnalyticsEvent('page_view', { page_path: path, page_location: window.location.href, page_title: document.title });
 }
-

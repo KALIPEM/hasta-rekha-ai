@@ -26,7 +26,7 @@ function AppContent() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [roast, setRoast] = useState(false);
   const [status, setStatus] = useState<ServiceStatus>({ aiConfigured: false, billingConfigured: false });
-  useEffect(() => { initAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID); }, []);
+  useEffect(() => { initAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-S150VF0HRN'); }, []);
   useEffect(() => { apiRequest('/api/config').then(setStatus).catch(() => {}); }, []);
   useEffect(() => { const onPopState = () => { const nextRoute = window.location.pathname.startsWith('/app') ? 'app' : 'landing'; setRoute(nextRoute); setView(nextRoute === 'app' ? 'history' : 'home'); }; window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState); }, []);
   useEffect(() => { window.scrollTo({ top: 0 }); setMenuOpen(false); }, [route, view]);

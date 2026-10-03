@@ -12,7 +12,7 @@ In the Render service environment variables, add:
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-This ID is intended for browser code. Do not put Supabase service keys, Azure keys, or Razorpay secrets in `VITE_` variables.
+This ID is intended for browser code. The current Hasta stream is `G-S150VF0HRN`; Render can override it with the same value. Do not put Supabase service keys, Azure keys, or Razorpay secrets in `VITE_` variables.
 
 ## 3. Use tagged campaign links
 
