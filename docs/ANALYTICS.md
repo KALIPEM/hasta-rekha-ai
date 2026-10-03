@@ -28,6 +28,6 @@ Hasta stores the first tagged campaign locally for the visitor and GA4 receives 
 
 ## 4. Verify the purchase event
 
-After a Razorpay payment is successfully verified, Hasta sends GA4's standard `purchase` event with the Razorpay order ID, INR value, and plan item. It also sends `begin_checkout` when checkout starts. In GA4, use **Reports → Acquisition → Traffic acquisition** and add **Session source / medium** or **Session campaign**. Use **Admin → Data display → Events** to confirm `purchase`; mark it as a key event if you want it surfaced as a business conversion. Google explains key events [here](https://support.google.com/analytics/answer/13965727).
+After a Razorpay payment is successfully verified, Hasta sends GA4's standard `purchase` event with the Razorpay order ID, INR value, and plan item. It also sends `begin_checkout` when checkout starts, `login` after a completed Supabase sign-in, and `sign_up` after email account creation. No email address or other personal identifier is sent to GA4. In GA4, use **Reports → Acquisition → Traffic acquisition** and add **Session source / medium** or **Session campaign**. Use **Admin → Data display → Events** to confirm `purchase`, `login`, and `sign_up`; mark `purchase` and optionally `sign_up` as key events if you want them surfaced as business conversions. Google explains key events [here](https://support.google.com/analytics/answer/13965727).
 
 GA4 may take a few minutes to show normal reports. Use **Reports → Realtime** or **DebugView** while testing.

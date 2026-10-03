@@ -3,6 +3,7 @@ import { ArrowRight, Hand } from 'lucide-react';
 import { supabase } from '../lib/supabase-client';
 import { useAuth } from './AuthContext';
 import { Modal } from './Modal';
+import { trackAnalyticsEvent } from '../lib/analytics';
 export function AuthScreen({onBack, fullPage = false}: {onBack: () => void; fullPage?: boolean}) {
   const {user} = useAuth();
   const [signup, setSignup] = useState(false), [email, setEmail] = useState(''), [password, setPassword] = useState('');
@@ -14,6 +15,7 @@ export function AuthScreen({onBack, fullPage = false}: {onBack: () => void; full
     try {
       const result = signup ? await supabase.auth.signUp({email, password, options: {emailRedirectTo: window.location.origin}}) : await supabase.auth.signInWithPassword({email, password});
       if (result.error) throw result.error;
+      if (signup) trackAnalyticsEvent('sign_up', {method: 'email'});
       if (signup && !result.data.session) setNotice('Check your email to confirm your account, then return here to sign in.');
     } catch (e: any) {setError(e.message || 'We could not sign you in. Please try again.');}
     finally {setBusy(false);}
