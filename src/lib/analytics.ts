@@ -10,16 +10,19 @@ export function initAnalytics(id?: string) {
   captureAttribution();
   const w = window as typeof window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
   w.dataLayer = w.dataLayer || [];
+  const hadStaticTag = Boolean(w.gtag);
   w.gtag = w.gtag || function (...args: unknown[]) { w.dataLayer!.push(args); };
-  if (!document.querySelector(`script[data-ga4="${id}"]`)) {
+  if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
     script.dataset.ga4 = id;
     document.head.appendChild(script);
   }
-  w.gtag('js', new Date());
-  w.gtag('config', id, { send_page_view: false });
+  if (!hadStaticTag) {
+    w.gtag('js', new Date());
+    w.gtag('config', id, { send_page_view: false });
+  }
 }
 
 export function captureAttribution() {
