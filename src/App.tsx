@@ -65,9 +65,9 @@ function AppContent() {
       {route === 'app' && <>
         {!user && <section className="app-gate section-width"><div className="eyebrow">YOUR READING WORKSPACE</div><h1>Sign in to see your readings.</h1><p>Your saved reports, new palm readings, credits, and follow-up questions all live here.</p><button className="button button-brand" onClick={() => setAuthOpen(true)}>Sign in to continue <ArrowRight size={16}/></button></section>}
         {view === 'history' && user && <Dashboard onStart={() => start()} onOpen={openReading} onSample={showSample}/>} 
-        {view === 'mode' && user && <ReadingModePage onBack={() => navigate('/')} onSelect={kind => { setReadingKind(kind); setView('scan'); }}/>} 
-        {view === 'scan' && user && <Scanner key={String(roast)} readingKind={readingKind} onCancel={() => navigate('/')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={showSample} onPricing={openPricing}/>} 
-        {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => navigate('/')} onStart={() => start()} onPricing={openPricing} onUpdateTitle={title => setReading({ ...reading, title })}/>} 
+        {view === 'mode' && user && <ReadingModePage onBack={() => navigate('/app', 'history')} onSelect={kind => { setReadingKind(kind); setView('scan'); }}/>} 
+        {view === 'scan' && user && <Scanner key={String(roast)} readingKind={readingKind} onCancel={() => navigate('/app', 'history')} onScanComplete={openReading} initialRoast={roast} status={status} onSample={showSample} onPricing={openPricing}/>} 
+        {view === 'reading' && <ReadingView key={reading.id} reading={reading} onBack={() => navigate('/app', 'history')} onStart={() => start()} onPricing={openPricing} onUpdateTitle={title => setReading({ ...reading, title })}/>} 
       </>}
       </>}
     </main>
@@ -91,7 +91,7 @@ function PortalHeader({onPricing, onSignOut}: {onPricing: () => void; onSignOut:
 }
 function ReadingModePage({onBack, onSelect}: {onBack: () => void; onSelect: (kind: 'individual' | 'couple') => void}) {
   return <section className="reading-mode-page section-width">
-    <button className="back-link" onClick={onBack}>← Back to Hasta Rekha</button>
+    <button className="back-link" onClick={onBack}>← Back to dashboard</button>
     <div className="eyebrow">NEW READING</div><h1>What would you like to read?</h1><p>Choose one option to continue.</p>
     <div className="reading-mode-page-grid">
       <button className="reading-mode-page-card" onClick={() => onSelect('individual')}><span className="reading-mode-icon"><Hand size={24}/></span><span><strong>Individual reading</strong><small>Read one person’s palm · ₹20 · 3 follow-up questions</small></span><ArrowRight size={19}/></button>
