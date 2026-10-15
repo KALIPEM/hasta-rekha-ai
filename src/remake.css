@@ -2156,3 +2156,19 @@ p{font-size:15px;line-height:1.7}
   .radio-card{font-size:14px}
   .form-actions>.button{font-size:14px;padding-inline:16px}
 }
+
+/* Keep the roast warning actions inside the dialog on narrow screens. */
+@media(max-width:480px){
+  .modal:has(.roast-warning-symbol) .form-actions{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    align-items:stretch}
+  .modal:has(.roast-warning-symbol) .form-actions>.button,
+  .modal:has(.roast-warning-symbol) .form-actions>.back-link{
+    width:100%;
+    min-width:0;
+    white-space:normal;
+    text-align:center;
+    justify-content:center}
+}
